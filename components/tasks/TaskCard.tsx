@@ -66,7 +66,7 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit }: Props
   }
 
   return (
-    <div className="border rounded-lg p-4 space-y-3">
+    <div className="border border-gray-400 rounded-lg p-4 space-y-3">
 
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">

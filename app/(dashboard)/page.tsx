@@ -51,7 +51,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
 
-      <div className="flex items-center justify-between">
+      <div className="max-w-2xl mx-auto flex items-center justify-between">
         <StreakCounter streak={streak} longestStreak={longestStreak} />
         <div className="flex items-center gap-1 border rounded-lg p-1">
           <Button
@@ -76,7 +76,7 @@ export default function DashboardPage() {
       </div>
 
       {viewMode === 'list' ? (
-        <>
+        <div className="max-w-2xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
@@ -112,10 +112,10 @@ export default function DashboardPage() {
           ) : (
             <TaskList tasks={tasks} date={date} onRefresh={handleRefresh} />
           )}
-        </>
+        </div>
       ) : (
-        <>
-          <div className="flex items-center justify-between">
+        <div className="space-y-4">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
             <Button
               variant="ghost"
               size="icon"
@@ -144,7 +144,7 @@ export default function DashboardPage() {
               onDayClick={handleDayClick}
             />
           )}
-        </>
+        </div>
       )}
 
     </div>

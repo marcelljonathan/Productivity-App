@@ -43,13 +43,13 @@ export default function CalendarView({ yearMonth, tasksByDate, onDayClick }: Pro
         ))}
       </div>
 
-      <div className="grid grid-cols-7 border-l border-t">
+      <div className="grid grid-cols-7 border-l border-t border-gray-400">
         {cells.map((day, i) => {
           if (day === null) {
             return (
               <div
                 key={`blank-${i}`}
-                className="border-r border-b min-h-[120px] bg-muted/10"
+                className="border-r border-b border-gray-400 min-h-[120px] bg-muted/10"
               />
             )
           }
@@ -61,7 +61,7 @@ export default function CalendarView({ yearMonth, tasksByDate, onDayClick }: Pro
           return (
             <div
               key={dateStr}
-              className="border-r border-b min-h-[120px] p-1.5 cursor-pointer hover:bg-muted/30 transition-colors"
+              className="border-r border-b border-gray-400 min-h-[120px] p-1.5 cursor-pointer hover:bg-muted/30 transition-colors"
               onClick={() => onDayClick(dateStr)}
             >
               <div

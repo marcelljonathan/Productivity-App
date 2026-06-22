@@ -28,10 +28,10 @@ export default function SignupPage() {
     }
 
     if (data.session) {
-        router.push("/")
-        router.refresh()
+      router.push("/onboarding")
+      router.refresh()
     } else {
-        setSuccess(true)
+      setSuccess(true)
     }
   }
 
@@ -41,6 +41,7 @@ export default function SignupPage() {
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">Check your email</h1>
           <p className="text-muted-foreground">Confirmation link sent to {email}</p>
+          <p className="text-sm text-muted-foreground">You'll be asked to set up your profile after confirming.</p>
         </div>
       </div>
     )
