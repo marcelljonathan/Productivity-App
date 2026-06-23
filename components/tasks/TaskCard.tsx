@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Task, TaskStatus } from "@/lib/types"
 import { isCancellationAllowed, getTodayLocalDate } from "@/lib/utils/timezone"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import SubtaskList from "./SubtaskList"
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   pending: 'Pending',
+  partial: 'Partial',
   done: 'Done',
   failed: 'Failed',
   moved: 'Moved',
@@ -18,10 +19,20 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
+  partial: 'bg-orange-100 text-orange-800',
   done: 'bg-green-100 text-green-800',
   failed: 'bg-red-100 text-red-800',
   moved: 'bg-blue-100 text-blue-800',
   cancelled: 'bg-gray-100 text-gray-600',
+}
+
+const STATUS_BG: Record<TaskStatus, string> = {
+  pending: '',
+  partial: 'bg-orange-50 dark:bg-orange-950/30',
+  done: 'bg-green-50 dark:bg-green-950/30',
+  failed: 'bg-red-50 dark:bg-red-950/30',
+  moved: 'bg-blue-50 dark:bg-blue-950/30',
+  cancelled: 'bg-gray-50 dark:bg-gray-800/40',
 }
 
 type Props = {
@@ -29,20 +40,35 @@ type Props = {
   onStatusChange: (id: string, status: TaskStatus, extra?: Partial<Task>) => void
   onMove: (id: string, newDate: string) => void
   onEdit: (task: Task) => void
+  onSubtaskProgress?: (taskId: string, done: number, total: number) => void
 }
 
-export default function TaskCard({ task, onStatusChange, onMove, onEdit }: Props) {
+export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubtaskProgress }: Props) {
   const [cancelMode, setCancelMode] = useState(false)
   const [moveMode, setMoveMode] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
   const [moveDate, setMoveDate] = useState("")
+  const [showDesc, setShowDesc] = useState(false)
 
   const { subtasks, loading: subtasksLoading, toggleSubtask } = useSubtasks(task.id)
+
+  const doneSubtasks = subtasks.filter(s => s.done).length
+  const totalSubtasks = subtasks.length
+
+  useEffect(() => {
+    if (!subtasksLoading) onSubtaskProgress?.(task.id, doneSubtasks, totalSubtasks)
+  }, [doneSubtasks, totalSubtasks, subtasksLoading])
 
   const canCancel = isCancellationAllowed(task)
   const canMove = !task.moved_from_id
   const minMoveDate = getTodayLocalDate()
   const hasSubtasks = subtasks.length > 0
+
+  const subPct = totalSubtasks > 0 ? Math.round((doneSubtasks / totalSubtasks) * 100) : 0
+  const gradientStyle: React.CSSProperties =
+    task.status === 'partial' && totalSubtasks > 0 && !subtasksLoading
+      ? { background: `linear-gradient(to right, rgba(249,115,22,0.2) ${subPct}%, rgba(249,115,22,0.05) ${subPct}%)` }
+      : {}
 
   function handleCancel() {
     if (!cancelReason.trim()) return
@@ -60,34 +86,31 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit }: Props
 
   async function handleSubtaskToggle(subtaskId: string, done: boolean) {
     const updated = await toggleSubtask(subtaskId, done)
-    if (updated.length > 0 && updated.every(s => s.done)) {
+    if (updated.length === 0) return
+    if (updated.every(s => s.done)) {
       onStatusChange(task.id, 'done')
+    } else if (updated.some(s => s.done)) {
+      onStatusChange(task.id, 'partial')
+    } else {
+      onStatusChange(task.id, 'pending')
     }
   }
 
   return (
-    <div className="border border-gray-400 rounded-lg p-4 space-y-3">
+    <div className={`border border-gray-400 rounded-lg p-4 space-y-3 ${STATUS_BG[task.status]}`} style={gradientStyle}>
 
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            {task.scheduled_time && (
-              <span className="text-xs text-muted-foreground">
-                {task.scheduled_time.slice(0, 5)}
-              </span>
-            )}
-            <h3 className={`font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
-              {task.title}
-            </h3>
-          </div>
-
-          {task.category && (
-            <span className="text-xs text-muted-foreground">{task.category}</span>
+          {task.scheduled_time && (
+            <p className="text-xs text-muted-foreground mb-0.5">
+              {task.scheduled_time.slice(0, 5)}
+              {task.end_time && ` - ${task.end_time.slice(0, 5)}`}
+            </p>
           )}
 
-          {task.description && (
-            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-          )}
+          <h3 className="font-medium">
+            {task.category ? `${task.category} - ${task.title}` : task.title}
+          </h3>
 
           {task.status === 'cancelled' && task.cancellation_reason && (
             <p className="text-xs text-muted-foreground mt-1 italic">
@@ -109,7 +132,23 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit }: Props
         />
       )}
 
-      {task.status === 'pending' && !cancelMode && !moveMode && (
+      {task.description && (
+        <>
+          <div className="border-t border-gray-200" />
+          <button
+            onClick={() => setShowDesc(v => !v)}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <span>{showDesc ? '▾' : '▸'}</span>
+            Description
+          </button>
+          {showDesc && (
+            <p className="text-sm text-muted-foreground">{task.description}</p>
+          )}
+        </>
+      )}
+
+      {(task.status === 'pending' || task.status === 'partial') && !cancelMode && !moveMode && (
         <div className="flex flex-wrap gap-2">
           {!hasSubtasks && (
             <button

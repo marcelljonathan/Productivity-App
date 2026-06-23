@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
+export type SubtaskEntry = { id?: string; title: string }
+
 export type TaskFormData = {
   title: string
   description: string
@@ -15,7 +17,7 @@ export type TaskFormData = {
   date: string
   scheduled_time: string
   end_time: string
-  subtaskTitles: string[]
+  subtaskEntries: SubtaskEntry[]
 }
 
 type Props = {
@@ -32,29 +34,31 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
   const [date, setDate] = useState(task?.date ?? defaultDate)
   const [scheduledTime, setScheduledTime] = useState(task?.scheduled_time ?? "")
   const [endTime, setEndTime] = useState(task?.end_time ?? "")
-  const [subtaskTitles, setSubtaskTitles] = useState<string[]>([])
+  const [subtaskEntries, setSubtaskEntries] = useState<SubtaskEntry[]>([])
 
   useEffect(() => {
     if (!task?.id) return
     const supabase = createClient()
     supabase
       .from('subtasks')
-      .select('title')
+      .select('id, title')
       .eq('task_id', task.id)
       .order('created_at', { ascending: true })
       .then(({ data }) => {
-        if (data) setSubtaskTitles(data.map(s => s.title))
+        if (data) setSubtaskEntries(data.map(s => ({ id: s.id, title: s.title })))
       })
   }, [task?.id])
 
   function updateTitle(i: number, val: string) {
-    const next = [...subtaskTitles]
-    next[i] = val
-    setSubtaskTitles(next)
+    setSubtaskEntries(prev => {
+      const next = [...prev]
+      next[i] = { ...next[i], title: val }
+      return next
+    })
   }
 
-  function removeTitle(i: number) {
-    setSubtaskTitles(subtaskTitles.filter((_, j) => j !== i))
+  function removeEntry(i: number) {
+    setSubtaskEntries(prev => prev.filter((_, j) => j !== i))
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -66,7 +70,7 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
       date,
       scheduled_time: scheduledTime,
       end_time: endTime,
-      subtaskTitles: subtaskTitles.filter(t => t.trim()),
+      subtaskEntries: subtaskEntries.filter(e => e.title.trim()),
     })
   }
 
@@ -154,17 +158,17 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
         <Label>
           Subtasks <span className="text-muted-foreground text-xs">(optional)</span>
         </Label>
-        {subtaskTitles.map((t, i) => (
-          <div key={i} className="flex gap-2">
+        {subtaskEntries.map((entry, i) => (
+          <div key={entry.id ?? i} className="flex gap-2">
             <Input
-              value={t}
+              value={entry.title}
               onChange={e => updateTitle(i, e.target.value)}
               placeholder={`Subtask ${i + 1}`}
               className="h-8 text-sm"
             />
             <button
               type="button"
-              onClick={() => removeTitle(i)}
+              onClick={() => removeEntry(i)}
               className="text-muted-foreground hover:text-foreground px-1 text-base leading-none"
             >
               ×
@@ -173,7 +177,7 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
         ))}
         <button
           type="button"
-          onClick={() => setSubtaskTitles([...subtaskTitles, ''])}
+          onClick={() => setSubtaskEntries(prev => [...prev, { title: '' }])}
           className="text-xs text-muted-foreground hover:text-foreground"
         >
           + Add subtask

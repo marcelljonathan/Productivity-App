@@ -28,7 +28,7 @@ export default function SubtaskList({ subtasks, isPending, onToggle }: Props) {
             disabled={!isPending}
             className="rounded border-gray-300 cursor-pointer"
           />
-          <span className={`text-sm ${subtask.done ? 'line-through text-muted-foreground' : ''}`}>
+          <span className="text-sm">
             {subtask.title}
           </span>
         </div>

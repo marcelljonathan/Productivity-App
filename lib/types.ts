@@ -1,4 +1,4 @@
-export type TaskStatus = 'pending' | 'done' | 'failed' | 'moved' | 'cancelled'
+export type TaskStatus = 'pending' | 'partial' | 'done' | 'failed' | 'moved' | 'cancelled'
 
 export type Subtask = {
   id: string

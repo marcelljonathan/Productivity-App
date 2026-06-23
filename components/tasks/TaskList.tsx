@@ -16,7 +16,12 @@ type Props = {
 export default function TaskList({ tasks, date, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [subtaskProgress, setSubtaskProgress] = useState<Record<string, { done: number; total: number }>>({})
   const supabase = createClient()
+
+  function handleSubtaskProgress(taskId: string, done: number, total: number) {
+    setSubtaskProgress(prev => ({ ...prev, [taskId]: { done, total } }))
+  }
 
   async function getUserId() {
     const { data } = await supabase.auth.getUser()
@@ -36,12 +41,12 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
       status: 'pending',
     }).select().single()
 
-    if (newTask && data.subtaskTitles.length > 0) {
+    if (newTask && data.subtaskEntries.length > 0) {
       await supabase.from('subtasks').insert(
-        data.subtaskTitles.map(title => ({
+        data.subtaskEntries.map(e => ({
           task_id: newTask.id,
           user_id: userId,
-          title,
+          title: e.title.trim(),
           done: false,
         }))
       )
@@ -64,22 +69,36 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
       updated_at: new Date().toISOString(),
     }).eq('id', editingTask.id)
 
-    // Fetch existing subtasks to carry over done state by title
-    const { data: existingSubs } = await supabase
-      .from('subtasks').select('title, done').eq('task_id', editingTask.id)
-    const doneByTitle: Record<string, boolean> = {}
-    for (const s of existingSubs ?? []) doneByTitle[s.title] = s.done
+    const entries = data.subtaskEntries
+    const keptIds = entries.filter(e => e.id).map(e => e.id!)
 
-    await supabase.from('subtasks').delete().eq('task_id', editingTask.id)
+    // Delete only subtasks that were removed in the form
+    if (keptIds.length === 0) {
+      await supabase.from('subtasks').delete().eq('task_id', editingTask.id)
+    } else {
+      await supabase.from('subtasks')
+        .delete()
+        .eq('task_id', editingTask.id)
+        .not('id', 'in', `(${keptIds.join(',')})`)
+    }
 
-    if (data.subtaskTitles.length > 0) {
+    // Update titles of kept subtasks (in case user renamed one)
+    for (const entry of entries.filter(e => e.id)) {
+      await supabase.from('subtasks')
+        .update({ title: entry.title.trim() })
+        .eq('id', entry.id!)
+    }
+
+    // Insert brand-new subtasks (no id)
+    const newEntries = entries.filter(e => !e.id)
+    if (newEntries.length > 0) {
       const userId = await getUserId()
       await supabase.from('subtasks').insert(
-        data.subtaskTitles.map(title => ({
+        newEntries.map(e => ({
           task_id: editingTask.id,
           user_id: userId,
-          title,
-          done: doneByTitle[title] ?? false,
+          title: e.title.trim(),
+          done: false,
         }))
       )
     }
@@ -133,8 +152,34 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
     setEditingTask(null)
   }
 
+  const countable = tasks.filter(t => t.status !== 'cancelled' && t.status !== 'moved')
+  const doneFull = countable.filter(t => t.status === 'done').length
+  const totalProgress = countable.reduce((sum, task) => {
+    if (task.status === 'done') return sum + 1
+    if (task.status !== 'pending' && task.status !== 'partial') return sum
+    const sp = subtaskProgress[task.id]
+    if (!sp || sp.total === 0) return sum
+    return sum + sp.done / sp.total
+  }, 0)
+  const pct = countable.length > 0 ? Math.round((totalProgress / countable.length) * 100) : null
+
   return (
     <div className="space-y-3">
+
+      {pct !== null && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{doneFull} / {countable.length} done</span>
+            <span>{pct}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-green-500 transition-all duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {tasks.length === 0 && !showForm && !editingTask && (
         <p className="text-muted-foreground text-sm text-center py-8">
@@ -149,6 +194,7 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
             onStatusChange={handleStatusChange}
             onMove={handleMove}
             onEdit={openEdit}
+            onSubtaskProgress={handleSubtaskProgress}
           />
           {editingTask?.id === task.id && (
             <div className="border rounded-lg p-4 mt-2">
