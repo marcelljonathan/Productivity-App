@@ -8,6 +8,18 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Check, X } from "lucide-react"
+
+const passwordRules = [
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { label: "Contains a number", test: (p: string) => /\d/.test(p) },
+  { label: "Contains a letter", test: (p: string) => /[a-zA-Z]/.test(p) },
+  { label: "Contains an uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+]
+
+function isPasswordValid(password: string) {
+  return passwordRules.every(r => r.test(password))
+}
 
 const RAW_TIMEZONES: string[] =
   typeof Intl !== 'undefined' && 'supportedValuesOf' in Intl
@@ -52,6 +64,7 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState("auto")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [passwordTouched, setPasswordTouched] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState("")
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -71,12 +84,13 @@ export default function SettingsPage() {
   }
 
   async function handleChangePassword() {
-    if (newPassword !== confirmPassword) {
-      setPasswordMsg({ type: 'error', text: 'Passwords do not match.' })
+    if (!isPasswordValid(newPassword)) {
+      setPasswordTouched(true)
+      setPasswordMsg({ type: 'error', text: 'Password does not meet all requirements.' })
       return
     }
-    if (newPassword.length < 6) {
-      setPasswordMsg({ type: 'error', text: 'Minimum 6 characters.' })
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'Passwords do not match.' })
       return
     }
     try {
@@ -84,6 +98,7 @@ export default function SettingsPage() {
       setPasswordMsg({ type: 'success', text: 'Password changed.' })
       setNewPassword("")
       setConfirmPassword("")
+      setPasswordTouched(false)
       setTimeout(() => setPasswordMsg(null), 3000)
     } catch (e: any) {
       setPasswordMsg({ type: 'error', text: e.message })
@@ -183,9 +198,22 @@ export default function SettingsPage() {
             id="new-password"
             type="password"
             value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
+            onChange={e => { setNewPassword(e.target.value); setPasswordTouched(true) }}
             placeholder="New password"
           />
+          {passwordTouched && (
+            <ul className="space-y-1 pt-1">
+              {passwordRules.map(rule => {
+                const passed = rule.test(newPassword)
+                return (
+                  <li key={rule.label} className={`flex items-center gap-2 text-xs ${passed ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {passed ? <Check size={12} /> : <X size={12} />}
+                    {rule.label}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
 
         <div className="space-y-1.5">

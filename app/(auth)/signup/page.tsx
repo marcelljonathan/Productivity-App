@@ -7,10 +7,23 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
+import { Check, X } from "lucide-react"
+
+const rules = [
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { label: "Contains a number", test: (p: string) => /\d/.test(p) },
+  { label: "Contains a letter", test: (p: string) => /[a-zA-Z]/.test(p) },
+  { label: "Contains an uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+]
+
+function isPasswordValid(password: string) {
+  return rules.every(r => r.test(password))
+}
 
 export default function SignupPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [touched, setTouched] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const router = useRouter()
@@ -19,6 +32,12 @@ export default function SignupPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+
+    if (!isPasswordValid(password)) {
+      setTouched(true)
+      setError("Password does not meet all requirements.")
+      return
+    }
 
     const { data, error } = await supabase.auth.signUp({ email, password })
 
@@ -64,8 +83,26 @@ export default function SignupPage() {
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password}
-              onChange={e => setPassword(e.target.value)} required />
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={e => { setPassword(e.target.value); setTouched(true) }}
+              required
+            />
+            {touched && (
+              <ul className="space-y-1 pt-1">
+                {rules.map(rule => {
+                  const passed = rule.test(password)
+                  return (
+                    <li key={rule.label} className={`flex items-center gap-2 text-xs ${passed ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passed ? <Check size={12} /> : <X size={12} />}
+                      {rule.label}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

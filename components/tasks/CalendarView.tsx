@@ -22,21 +22,21 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
 }
 
 const STATUS_BOX_BG: Record<TaskStatus, string> = {
-  pending: 'bg-gray-100 dark:bg-gray-700 border-l-gray-400',
-  partial: 'bg-orange-50 dark:bg-orange-950/30 border-l-orange-400',
-  done: 'bg-green-50 dark:bg-green-950/30 border-l-green-400',
-  failed: 'bg-red-50 dark:bg-red-950/30 border-l-red-400',
-  moved: 'bg-blue-50 dark:bg-blue-950/30 border-l-blue-400',
-  cancelled: 'bg-gray-50 dark:bg-gray-800/40 border-l-gray-400',
+  pending: 'bg-gray-200 dark:bg-gray-700 border-l-gray-400',
+  partial: 'bg-orange-200 dark:bg-orange-800/60 border-l-orange-400',
+  done: 'bg-green-200 dark:bg-green-800/60 border-l-green-400',
+  failed: 'bg-red-200 dark:bg-red-800/60 border-l-red-400',
+  moved: 'bg-blue-200 dark:bg-blue-800/60 border-l-blue-400',
+  cancelled: 'bg-gray-200 dark:bg-gray-700/60 border-l-gray-400',
 }
 
 const STATUS_BADGE: Record<TaskStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
-  partial: 'bg-orange-100 text-orange-800',
-  done: 'bg-green-100 text-green-800',
-  failed: 'bg-red-100 text-red-800',
-  moved: 'bg-blue-100 text-blue-800',
-  cancelled: 'bg-gray-100 text-gray-600',
+  partial: 'bg-orange-200 text-orange-800',
+  done: 'bg-green-200 text-green-800',
+  failed: 'bg-red-200 text-red-800',
+  moved: 'bg-blue-200 text-blue-800',
+  cancelled: 'bg-gray-200 text-gray-600',
 }
 
 export default function CalendarView({ yearMonth, tasksByDate, onDayClick }: Props) {

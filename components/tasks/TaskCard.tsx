@@ -19,20 +19,20 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
-  partial: 'bg-orange-100 text-orange-800',
-  done: 'bg-green-100 text-green-800',
-  failed: 'bg-red-100 text-red-800',
-  moved: 'bg-blue-100 text-blue-800',
-  cancelled: 'bg-gray-100 text-gray-600',
+  partial: 'bg-orange-200 text-orange-800',
+  done: 'bg-green-200 text-green-800',
+  failed: 'bg-red-200 text-red-800',
+  moved: 'bg-blue-200 text-blue-800',
+  cancelled: 'bg-gray-200 text-gray-600',
 }
 
 const STATUS_BG: Record<TaskStatus, string> = {
   pending: '',
-  partial: 'bg-orange-50 dark:bg-orange-950/30',
-  done: 'bg-green-50 dark:bg-green-950/30',
-  failed: 'bg-red-50 dark:bg-red-950/30',
-  moved: 'bg-blue-50 dark:bg-blue-950/30',
-  cancelled: 'bg-gray-50 dark:bg-gray-800/40',
+  partial: 'bg-orange-200 dark:bg-orange-800/60',
+  done: 'bg-green-200 dark:bg-green-800/60',
+  failed: 'bg-red-200 dark:bg-red-800/60',
+  moved: 'bg-blue-200 dark:bg-blue-800/60',
+  cancelled: 'bg-gray-200 dark:bg-gray-700/60',
 }
 
 type Props = {
@@ -127,7 +127,7 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
       {!subtasksLoading && (
         <SubtaskList
           subtasks={subtasks}
-          isPending={task.status === 'pending'}
+          isPending={task.status === 'pending' || task.status === 'partial'}
           onToggle={handleSubtaskToggle}
         />
       )}
@@ -153,7 +153,7 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
           {!hasSubtasks && (
             <button
               onClick={() => onStatusChange(task.id, 'done')}
-              className="text-xs px-3 py-1 rounded bg-green-100 text-green-800 hover:bg-green-200"
+              className="text-xs px-3 py-1 rounded bg-green-200 text-green-800 hover:bg-green-200"
             >
               Done
             </button>
@@ -161,7 +161,7 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
           {task.status === 'pending' && (
             <button
               onClick={() => onStatusChange(task.id, 'failed')}
-              className="text-xs px-3 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
+              className="text-xs px-3 py-1 rounded bg-red-200 text-red-800 hover:bg-red-200"
             >
               Failed
             </button>
@@ -169,7 +169,7 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
           {canCancel && (
             <button
               onClick={() => setCancelMode(true)}
-              className="text-xs px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className="text-xs px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-200"
             >
               Cancel
             </button>
@@ -177,7 +177,7 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
           {canMove && (
             <button
               onClick={() => setMoveMode(true)}
-              className="text-xs px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200"
+              className="text-xs px-3 py-1 rounded bg-blue-200 text-blue-800 hover:bg-blue-200"
             >
               Move
             </button>
