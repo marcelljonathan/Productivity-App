@@ -32,8 +32,8 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
   const [description, setDescription] = useState(task?.description ?? "")
   const [category, setCategory] = useState(task?.category ?? "")
   const [date, setDate] = useState(task?.date ?? defaultDate)
-  const [scheduledTime, setScheduledTime] = useState(task?.scheduled_time ?? "")
-  const [endTime, setEndTime] = useState(task?.end_time ?? "")
+  const [scheduledTime, setScheduledTime] = useState(task?.scheduled_time?.slice(0, 5) ?? "")
+  const [endTime, setEndTime] = useState(task?.end_time?.slice(0, 5) ?? "")
   const [subtaskEntries, setSubtaskEntries] = useState<SubtaskEntry[]>([])
 
   useEffect(() => {
@@ -48,6 +48,13 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
         if (data) setSubtaskEntries(data.map(s => ({ id: s.id, title: s.title })))
       })
   }, [task?.id])
+
+  function formatTimeInput(val: string): string {
+    if (val.includes(':')) return val.slice(0, 5)
+    const digits = val.replace(/\D/g, '')
+    if (digits.length <= 2) return digits
+    return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`
+  }
 
   function updateTitle(i: number, val: string) {
     setSubtaskEntries(prev => {
@@ -133,7 +140,7 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
             id="scheduled_time"
             type="text"
             value={scheduledTime}
-            onChange={e => setScheduledTime(e.target.value)}
+            onChange={e => setScheduledTime(formatTimeInput(e.target.value))}
             placeholder="HH:MM"
             pattern="[0-2][0-9]:[0-5][0-9]"
           />
@@ -147,7 +154,7 @@ export default function TaskForm({ defaultDate, task, onSubmit, onCancel }: Prop
             id="end_time"
             type="text"
             value={endTime}
-            onChange={e => setEndTime(e.target.value)}
+            onChange={e => setEndTime(formatTimeInput(e.target.value))}
             placeholder="HH:MM"
             pattern="[0-2][0-9]:[0-5][0-9]"
           />

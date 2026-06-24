@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Sidebar from "@/components/layout/Sidebar"
+import BottomNav from "@/components/layout/BottomNav"
 import ProfileProvider from "@/components/providers/ProfileProvider"
 
 export default async function DashboardLayout({
@@ -25,9 +26,10 @@ export default async function DashboardLayout({
     <div className="min-h-screen flex">
       <ProfileProvider userId={user.id}>
         <Sidebar />
-        <main className="flex-1 px-8 py-8">
+        <main className="flex-1 px-4 py-6 md:px-8 md:py-8 pb-24 md:pb-8">
           {children}
         </main>
+        <BottomNav />
       </ProfileProvider>
     </div>
   )

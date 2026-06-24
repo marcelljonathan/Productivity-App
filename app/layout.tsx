@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   description: "Personal task tracker with streak accountability",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -158,12 +158,14 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
               Done
             </button>
           )}
-          <button
-            onClick={() => onStatusChange(task.id, 'failed')}
-            className="text-xs px-3 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
-          >
-            Failed
-          </button>
+          {task.status === 'pending' && (
+            <button
+              onClick={() => onStatusChange(task.id, 'failed')}
+              className="text-xs px-3 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
+            >
+              Failed
+            </button>
+          )}
           {canCancel && (
             <button
               onClick={() => setCancelMode(true)}

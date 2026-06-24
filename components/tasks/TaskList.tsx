@@ -103,6 +103,28 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
       )
     }
 
+    // Recalculate task status based on remaining subtasks
+    const { data: remaining } = await supabase
+      .from('subtasks')
+      .select('done')
+      .eq('task_id', editingTask.id)
+
+    if (remaining !== null) {
+      let newStatus: TaskStatus = editingTask.status
+      if (remaining.length === 0) {
+        newStatus = 'pending'
+      } else if (remaining.every(s => s.done)) {
+        newStatus = 'done'
+      } else if (remaining.some(s => s.done)) {
+        newStatus = 'partial'
+      } else {
+        newStatus = 'pending'
+      }
+      if (newStatus !== editingTask.status) {
+        await supabase.from('tasks').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', editingTask.id)
+      }
+    }
+
     setEditingTask(null)
     onRefresh()
   }
