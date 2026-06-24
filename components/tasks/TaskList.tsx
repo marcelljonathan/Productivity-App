@@ -164,9 +164,13 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
     onRefresh()
   }
 
-  function openEdit(task: Task) {
-    setEditingTask(task)
-    setShowForm(false)
+  function openEdit(task: Task | null) {
+    if (!task || editingTask?.id === task.id) {
+      setEditingTask(null)
+    } else {
+      setEditingTask(task)
+      setShowForm(false)
+    }
   }
 
   function closeForm() {
@@ -216,6 +220,7 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
             onStatusChange={handleStatusChange}
             onMove={handleMove}
             onEdit={openEdit}
+            isEditing={editingTask?.id === task.id}
             onSubtaskProgress={handleSubtaskProgress}
           />
           {editingTask?.id === task.id && (

@@ -39,11 +39,12 @@ type Props = {
   task: Task
   onStatusChange: (id: string, status: TaskStatus, extra?: Partial<Task>) => void
   onMove: (id: string, newDate: string) => void
-  onEdit: (task: Task) => void
+  onEdit: (task: Task | null) => void
   onSubtaskProgress?: (taskId: string, done: number, total: number) => void
+  isEditing?: boolean
 }
 
-export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubtaskProgress }: Props) {
+export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubtaskProgress, isEditing }: Props) {
   const [cancelMode, setCancelMode] = useState(false)
   const [moveMode, setMoveMode] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
@@ -149,42 +150,48 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
       )}
 
       {(task.status === 'pending' || task.status === 'partial') && !cancelMode && !moveMode && (
-        <div className="flex flex-wrap gap-2">
-          {!hasSubtasks && (
-            <button
-              onClick={() => onStatusChange(task.id, 'done')}
-              className="text-xs px-3 py-1 rounded bg-green-200 text-green-800 hover:bg-green-200"
-            >
-              Done
-            </button>
-          )}
-          {task.status === 'pending' && (
-            <button
-              onClick={() => onStatusChange(task.id, 'failed')}
-              className="text-xs px-3 py-1 rounded bg-red-200 text-red-800 hover:bg-red-200"
-            >
-              Failed
-            </button>
-          )}
-          {canCancel && (
-            <button
-              onClick={() => setCancelMode(true)}
-              className="text-xs px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-          )}
-          {canMove && (
-            <button
-              onClick={() => setMoveMode(true)}
-              className="text-xs px-3 py-1 rounded bg-blue-200 text-blue-800 hover:bg-blue-200"
-            >
-              Move
-            </button>
-          )}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            {!hasSubtasks && (
+              <button
+                onClick={() => onStatusChange(task.id, 'done')}
+                className="text-xs px-3 py-1 rounded bg-green-200 text-green-800 hover:bg-green-200"
+              >
+                Done
+              </button>
+            )}
+            {task.status === 'pending' && (
+              <button
+                onClick={() => onStatusChange(task.id, 'failed')}
+                className="text-xs px-3 py-1 rounded bg-red-200 text-red-800 hover:bg-red-200"
+              >
+                Failed
+              </button>
+            )}
+            {canCancel && (
+              <button
+                onClick={() => setCancelMode(true)}
+                className="text-xs px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+            )}
+            {canMove && (
+              <button
+                onClick={() => setMoveMode(true)}
+                className="text-xs px-3 py-1 rounded bg-blue-200 text-blue-800 hover:bg-blue-200"
+              >
+                Move
+              </button>
+            )}
+          </div>
           <button
-            onClick={() => onEdit(task)}
-            className="text-xs px-3 py-1 rounded bg-muted text-muted-foreground hover:bg-muted/80"
+            onClick={() => onEdit(isEditing ? null : task)}
+            className={`text-xs px-3 py-1 rounded transition-colors ${
+              isEditing
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
           >
             Edit
           </button>
