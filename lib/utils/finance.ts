@@ -91,12 +91,14 @@ export function calcDayFlowByCurrency(
     USD: { income: 0, expense: 0 },
   }
   for (const tx of transactions) {
-    if (tx.type === 'transfer') continue
     const acc = accountMap[tx.account_id]
     if (!acc) continue
+    if (tx.type === 'transfer') {
+      if (tx.transfer_fee) result[acc.currency].expense += tx.transfer_fee
+      continue
+    }
     if (tx.type === 'income') result[acc.currency].income += tx.amount
     if (tx.type === 'expense') result[acc.currency].expense += tx.amount
-    if (tx.type === 'transfer' && tx.transfer_fee) result[acc.currency].expense += tx.transfer_fee
   }
   return result
 }
