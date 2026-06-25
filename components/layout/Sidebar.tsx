@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useState } from "react"
-import { Menu, ListTodo, LogOut, ChevronLeft, Settings } from "lucide-react"
+import { Menu, ListTodo, LogOut, ChevronLeft, Settings, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProfileContext } from "@/components/providers/ProfileProvider"
 
@@ -52,6 +52,17 @@ export default function Sidebar() {
         >
           <ListTodo size={18} className="shrink-0" />
           {!collapsed && "Task List"}
+        </Link>
+        <Link
+          href="/finance"
+          title="Finance"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-muted transition-colors",
+            pathname.startsWith("/finance") ? "bg-muted font-medium" : "text-muted-foreground"
+          )}
+        >
+          <Wallet size={18} className="shrink-0" />
+          {!collapsed && "Finance"}
         </Link>
       </nav>
 

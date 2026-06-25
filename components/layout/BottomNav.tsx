@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { ListTodo, Settings, LogOut } from "lucide-react"
+import { ListTodo, Settings, LogOut, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export default function BottomNav() {
@@ -28,6 +28,16 @@ export default function BottomNav() {
       >
         <ListTodo size={20} />
         Tasks
+      </Link>
+      <Link
+        href="/finance"
+        className={cn(
+          "flex-1 flex flex-col items-center gap-1 py-3 text-xs transition-colors",
+          pathname.startsWith("/finance") ? "text-foreground font-medium" : "text-muted-foreground"
+        )}
+      >
+        <Wallet size={20} />
+        Finance
       </Link>
       <Link
         href="/settings"
