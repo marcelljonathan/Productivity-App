@@ -1,20 +1,22 @@
 "use client"
 
+import { useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
 import { FinanceAccount, FinanceCategory, FinanceTransaction } from "@/lib/types"
 import { getTodayLocalDate } from "@/lib/utils/timezone"
-import { calcDayFlowByCurrency, formatCurrency } from "@/lib/utils/finance"
+import { datesBetween, formatCurrency } from "@/lib/utils/finance"
 
 type Props = {
-  yearMonth: string
+  periodStart: string
+  periodEnd: string
   transactions: FinanceTransaction[]
   accounts: FinanceAccount[]
   categories: FinanceCategory[]
 }
 
-export default function MonthlyFinanceSummary({ yearMonth, transactions, accounts, categories }: Props) {
+export default function MonthlyFinanceSummary({ periodStart, periodEnd, transactions, accounts, categories }: Props) {
+  const [visible, setVisible] = useState(false)
   const today = getTodayLocalDate()
-  const [year, month] = yearMonth.split('-').map(Number)
-  const daysInMonth = new Date(year, month, 0).getDate()
 
   const totals = { IDR: { income: 0, expense: 0 }, USD: { income: 0, expense: 0 } }
   const categoryTotals: Record<string, { IDR: number; USD: number }> = {}
@@ -34,16 +36,16 @@ export default function MonthlyFinanceSummary({ yearMonth, transactions, account
     }
   }
 
-  const activeDays = Array.from({ length: daysInMonth }, (_, i) =>
-    `${yearMonth}-${String(i + 1).padStart(2, '0')}`
-  ).filter(d => d <= today).filter(d => {
-    const txByDay: Record<string, FinanceTransaction[]> = {}
-    transactions.forEach(tx => {
-      if (!txByDay[tx.date]) txByDay[tx.date] = []
-      txByDay[tx.date].push(tx)
-    })
-    return (txByDay[d] || []).length > 0
-  }).length
+  const txByDate = transactions.reduce<Record<string, FinanceTransaction[]>>((acc, tx) => {
+    if (!acc[tx.date]) acc[tx.date] = []
+    acc[tx.date].push(tx)
+    return acc
+  }, {})
+
+  const activeDays = datesBetween(periodStart, periodEnd)
+    .filter(d => d <= today)
+    .filter(d => (txByDate[d] || []).length > 0)
+    .length
 
   const topCategories = Object.entries(categoryTotals)
     .map(([catId, amounts]) => ({
@@ -59,8 +61,16 @@ export default function MonthlyFinanceSummary({ yearMonth, transactions, account
     cur => totals[cur].income > 0 || totals[cur].expense > 0
   )
 
+  const MASK = '••••••'
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <button onClick={() => setVisible(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+          {visible ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+      </div>
+
       {currencies.length === 0 && (
         <p className="text-center text-sm text-muted-foreground py-8">No transactions this month.</p>
       )}
@@ -71,21 +81,21 @@ export default function MonthlyFinanceSummary({ yearMonth, transactions, account
           <div key={cur} className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground">{cur}</h3>
             <div className="grid grid-cols-3 gap-2">
-              <div className="border rounded-lg p-3 text-center">
+              <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
                 <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(totals[cur].income, cur)}
+                  {visible ? formatCurrency(totals[cur].income, cur) : MASK}
                 </p>
                 <p className="text-xs text-muted-foreground">Income</p>
               </div>
-              <div className="border rounded-lg p-3 text-center">
+              <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
                 <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(totals[cur].expense, cur)}
+                  {visible ? formatCurrency(totals[cur].expense, cur) : MASK}
                 </p>
                 <p className="text-xs text-muted-foreground">Expense</p>
               </div>
-              <div className="border rounded-lg p-3 text-center">
+              <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
                 <p className={`text-lg font-bold ${net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {net >= 0 ? '+' : '−'}{formatCurrency(Math.abs(net), cur)}
+                  {visible ? `${net >= 0 ? '+' : '−'}${formatCurrency(Math.abs(net), cur)}` : MASK}
                 </p>
                 <p className="text-xs text-muted-foreground">Net</p>
               </div>
@@ -95,11 +105,11 @@ export default function MonthlyFinanceSummary({ yearMonth, transactions, account
       })}
 
       <div className="grid grid-cols-2 gap-2">
-        <div className="border rounded-lg p-3 text-center">
+        <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
           <p className="text-2xl font-semibold">{activeDays}</p>
           <p className="text-xs text-muted-foreground">Active days</p>
         </div>
-        <div className="border rounded-lg p-3 text-center">
+        <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
           <p className="text-2xl font-semibold">{transactions.filter(t => t.type !== 'transfer').length}</p>
           <p className="text-xs text-muted-foreground">Transactions</p>
         </div>
@@ -112,8 +122,14 @@ export default function MonthlyFinanceSummary({ yearMonth, transactions, account
             <div key={category!.id} className="flex items-center justify-between text-sm">
               <span>{category!.name}</span>
               <div className="text-right text-muted-foreground">
-                {IDR > 0 && <span className="mr-2">{formatCurrency(IDR, 'IDR')}</span>}
-                {USD > 0 && <span>{formatCurrency(USD, 'USD')}</span>}
+                {visible ? (
+                  <>
+                    {IDR > 0 && <span className="mr-2">{formatCurrency(IDR, 'IDR')}</span>}
+                    {USD > 0 && <span>{formatCurrency(USD, 'USD')}</span>}
+                  </>
+                ) : (
+                  <span className="tracking-widest">{MASK}</span>
+                )}
               </div>
             </div>
           ))}

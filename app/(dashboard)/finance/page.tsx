@@ -4,17 +4,21 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight, List, CalendarDays, BarChart2, Settings } from "lucide-react"
 import Link from "next/link"
 import { useFinanceAccounts } from "@/hooks/useFinanceAccounts"
+import { useFinanceAccountTypes } from "@/hooks/useFinanceAccountTypes"
 import { useFinanceCategories } from "@/hooks/useFinanceCategories"
+import { useFinanceTransactionTypes } from "@/hooks/useFinanceTransactionTypes"
 import { useFinanceTransactions } from "@/hooks/useFinanceTransactions"
 import { useFinanceMonth } from "@/hooks/useFinanceMonth"
 import { useFinanceRange } from "@/hooks/useFinanceRange"
-import AccountBar from "@/components/finance/AccountBar"
+import { useMonthlyStartDay } from "@/hooks/useMonthlyStartDay"
+import FinanceSummaryBar from "@/components/finance/FinanceSummaryBar"
 import TransactionList from "@/components/finance/TransactionList"
 import DailyFinanceSummary from "@/components/finance/summary/DailyFinanceSummary"
 import WeeklyFinanceSummary from "@/components/finance/summary/WeeklyFinanceSummary"
 import MonthlyFinanceSummary from "@/components/finance/summary/MonthlyFinanceSummary"
 import { Button } from "@/components/ui/button"
 import { getTodayLocalDate, formatLocalDate, addDays } from "@/lib/utils/timezone"
+import { getMonthPeriod } from "@/lib/utils/finance"
 
 type ViewMode = 'list' | 'daily' | 'weekly' | 'monthly'
 
@@ -53,17 +57,24 @@ export default function FinancePage() {
   const [yearMonth, setYearMonth] = useState(toYearMonth(getTodayLocalDate()))
   const [weekStart, setWeekStart] = useState(getWeekStart(getTodayLocalDate()))
 
+  const { startDay } = useMonthlyStartDay()
+  const monthPeriod = getMonthPeriod(yearMonth, startDay)
+
   const { accounts, balances, loading: accLoading, fetchAll: refetchAccounts } = useFinanceAccounts()
+  const { accountTypes } = useFinanceAccountTypes()
   const { categories, subcategories } = useFinanceCategories()
+  const { transactionTypes } = useFinanceTransactionTypes()
   const { transactions, loading: txLoading, fetchTransactions } = useFinanceTransactions(date)
-  const { transactions: monthTxs, txByDate: monthTxByDate, loading: monthLoading, fetchTransactions: fetchMonth } = useFinanceMonth(yearMonth)
+  const { txByDate: monthTxByDate, loading: monthLoading, fetchTransactions: fetchMonth } = useFinanceMonth(yearMonth)
   const { txByDate: weekTxByDate, loading: weekLoading, fetchTransactions: fetchWeek } = useFinanceRange(weekStart, addDays(weekStart, 6))
+  const { transactions: periodTxs, loading: periodLoading, fetchTransactions: fetchPeriod } = useFinanceRange(monthPeriod.start, monthPeriod.end)
 
   function handleRefresh() {
     fetchTransactions()
     refetchAccounts()
     fetchMonth()
     fetchWeek()
+    fetchPeriod()
   }
 
   function handleDayClick(d: string) {
@@ -72,7 +83,7 @@ export default function FinancePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="font-semibold text-lg">Finance</h1>
         <Link href="/finance/settings" className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
@@ -80,7 +91,7 @@ export default function FinancePage() {
         </Link>
       </div>
 
-      <AccountBar accounts={accounts} balances={balances} loading={accLoading} />
+      <FinanceSummaryBar accounts={accounts} balances={balances} accountTypes={accountTypes} transactions={transactions} loading={accLoading} />
 
       <div className="flex items-center justify-center">
         <div className="flex items-center gap-1 border rounded-lg p-1">
@@ -131,6 +142,7 @@ export default function FinancePage() {
               accounts={accounts}
               categories={categories}
               subcategories={subcategories}
+              transactionTypes={transactionTypes}
               onRefresh={handleRefresh}
             />
           )}
@@ -191,17 +203,18 @@ export default function FinancePage() {
             <Button variant="ghost" size="icon" onClick={() => setYearMonth(ym => shiftMonth(ym, -1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <p className="text-sm font-medium">{monthLabel(yearMonth)}</p>
+            <p className="text-sm font-medium">{monthPeriod.label}</p>
             <Button variant="ghost" size="icon" onClick={() => setYearMonth(ym => shiftMonth(ym, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          {monthLoading ? (
+          {periodLoading ? (
             <p className="text-sm text-muted-foreground text-center">Loading...</p>
           ) : (
             <MonthlyFinanceSummary
-              yearMonth={yearMonth}
-              transactions={monthTxs}
+              periodStart={monthPeriod.start}
+              periodEnd={monthPeriod.end}
+              transactions={periodTxs}
               accounts={accounts}
               categories={categories}
             />

@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
 import { FinanceAccount, FinanceTransaction } from "@/lib/types"
 import { addDays, getTodayLocalDate } from "@/lib/utils/timezone"
 import { calcDayFlowByCurrency, formatCurrency } from "@/lib/utils/finance"
@@ -14,6 +16,7 @@ type Props = {
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, onDayClick }: Props) {
+  const [visible, setVisible] = useState(false)
   const today = getTodayLocalDate()
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
@@ -42,20 +45,41 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, on
     1
   )
 
+  const MASK = <span className="font-bold tracking-widest text-muted-foreground">••••••</span>
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <button onClick={() => setVisible(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+          {visible ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         {(['IDR', 'USD'] as const).map(cur => {
           const net = weekTotals[cur].income - weekTotals[cur].expense
           if (weekTotals[cur].income === 0 && weekTotals[cur].expense === 0) return null
           return (
-            <div key={cur} className="border rounded-lg p-3 space-y-1">
+            <div key={cur} className="border border-gray-300 dark:border-border rounded-lg p-3 space-y-1">
               <p className="text-xs text-muted-foreground font-medium">{cur}</p>
-              <p className="text-sm text-green-600 dark:text-green-400">+{formatCurrency(weekTotals[cur].income, cur)}</p>
-              <p className="text-sm text-red-600 dark:text-red-400">−{formatCurrency(weekTotals[cur].expense, cur)}</p>
-              <p className={`text-sm font-semibold ${net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                Net: {net >= 0 ? '+' : '−'}{formatCurrency(Math.abs(net), cur)}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Income</span>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  {visible ? `+${formatCurrency(weekTotals[cur].income, cur)}` : MASK}
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Expense</span>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {visible ? `−${formatCurrency(weekTotals[cur].expense, cur)}` : MASK}
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Net</span>
+                <p className={`text-sm font-semibold ${net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {visible ? `${net >= 0 ? '+' : '−'}${formatCurrency(Math.abs(net), cur)}` : MASK}
+                </p>
+              </div>
             </div>
           )
         })}

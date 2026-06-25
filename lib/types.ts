@@ -2,14 +2,29 @@ export type TaskStatus = 'pending' | 'partial' | 'done' | 'failed' | 'moved' | '
 
 // Finance
 export type Currency = 'IDR' | 'USD'
-export type TransactionType = 'income' | 'expense' | 'transfer'
+export type TransactionType = 'income' | 'expense' | 'transfer' | 'custom'
+
+export type FinanceTransactionType = {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+}
 export type CategoryType = 'income' | 'expense'
+
+export type FinanceAccountType = {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+}
 
 export type FinanceAccount = {
   id: string
   user_id: string
   name: string
   currency: Currency
+  account_type_id: string | null
   starting_balance: number
   created_at: string
 }
@@ -41,6 +56,9 @@ export type FinanceTransaction = {
   exchange_rate: number | null
   category_id: string | null
   subcategory_id: string | null
+  custom_type_id: string | null
+  is_gain: boolean | null
+  transfer_fee: number | null
   date: string
   note: string | null
   created_at: string

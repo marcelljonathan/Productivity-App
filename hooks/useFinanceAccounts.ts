@@ -30,15 +30,15 @@ export function useFinanceAccounts() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  async function addAccount(name: string, currency: Currency, starting_balance: number) {
+  async function addAccount(name: string, currency: Currency, starting_balance: number, account_type_id: string | null) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from('finance_accounts').insert({ user_id: user.id, name, currency, starting_balance })
+    await supabase.from('finance_accounts').insert({ user_id: user.id, name, currency, starting_balance, account_type_id })
     await fetchAll()
   }
 
-  async function updateAccount(id: string, updates: { name?: string; starting_balance?: number }) {
+  async function updateAccount(id: string, updates: { name?: string; starting_balance?: number; account_type_id?: string | null }) {
     const supabase = createClient()
     await supabase.from('finance_accounts').update(updates).eq('id', id)
     await fetchAll()

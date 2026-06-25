@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { FinanceAccount, FinanceCategory, FinanceSubcategory, FinanceTransaction, TransactionType } from "@/lib/types"
+import { FinanceAccount, FinanceCategory, FinanceSubcategory, FinanceTransaction, FinanceTransactionType, TransactionType } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,20 +11,40 @@ type Props = {
   accounts: FinanceAccount[]
   categories: FinanceCategory[]
   subcategories: FinanceSubcategory[]
+  transactionTypes: FinanceTransactionType[]
   defaultDate: string
   transaction?: FinanceTransaction
   onSuccess: () => void
   onCancel: () => void
 }
 
-export default function TransactionForm({ accounts, categories, subcategories, defaultDate, transaction, onSuccess, onCancel }: Props) {
+const CURRENCY_SYMBOL: Record<string, string> = {
+  IDR: 'Rp',
+  USD: '$',
+}
+
+function formatAmount(value: string): string {
+  const stripped = value.replace(/[^\d.]/g, '')
+  const parts = stripped.split('.')
+  const integer = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return parts.length > 1 ? `${integer}.${parts[1]}` : integer
+}
+
+function parseAmount(display: string): number {
+  return parseFloat(display.replace(/,/g, '')) || 0
+}
+
+export default function TransactionForm({ accounts, categories, subcategories, transactionTypes, defaultDate, transaction, onSuccess, onCancel }: Props) {
   const isEdit = !!transaction
 
   const [type, setType] = useState<TransactionType>(transaction?.type ?? 'expense')
+  const [customTypeId, setCustomTypeId] = useState(transaction?.custom_type_id ?? '')
+  const [isGain, setIsGain] = useState<boolean>(transaction?.is_gain ?? true)
   const [accountId, setAccountId] = useState(transaction?.account_id ?? accounts[0]?.id ?? '')
   const [toAccountId, setToAccountId] = useState(transaction?.to_account_id ?? '')
-  const [amount, setAmount] = useState(transaction?.amount?.toString() ?? '')
-  const [toAmount, setToAmount] = useState(transaction?.to_amount?.toString() ?? '')
+  const [amount, setAmount] = useState(transaction?.amount ? formatAmount(transaction.amount.toString()) : '')
+  const [toAmount, setToAmount] = useState(transaction?.to_amount ? formatAmount(transaction.to_amount.toString()) : '')
+  const [transferFee, setTransferFee] = useState(transaction?.transfer_fee ? formatAmount(transaction.transfer_fee.toString()) : '')
   const [categoryId, setCategoryId] = useState(transaction?.category_id ?? '')
   const [subcategoryId, setSubcategoryId] = useState(transaction?.subcategory_id ?? '')
   const [date, setDate] = useState(transaction?.date ?? defaultDate)
@@ -33,14 +53,16 @@ export default function TransactionForm({ accounts, categories, subcategories, d
 
   const fromAccount = accounts.find(a => a.id === accountId)
   const toAccount = accounts.find(a => a.id === toAccountId)
-  const isCrossCurrency = fromAccount && toAccount && fromAccount.currency !== toAccount.currency
+  const isCrossCurrency = type === 'transfer' && fromAccount && toAccount && fromAccount.currency !== toAccount.currency
 
-  const filteredCategories = categories.filter(c => c.type === type)
+  const filteredCategories = categories.filter(c => c.type === type as string)
   const filteredSubcategories = subcategories.filter(s => s.category_id === categoryId)
 
   useEffect(() => {
-    setCategoryId('')
-    setSubcategoryId('')
+    if (type !== 'custom') {
+      setCategoryId('')
+      setSubcategoryId('')
+    }
   }, [type])
 
   useEffect(() => {
@@ -51,18 +73,24 @@ export default function TransactionForm({ accounts, categories, subcategories, d
     if (!isCrossCurrency) setToAmount('')
   }, [isCrossCurrency])
 
+  function selectCustomType(id: string) {
+    setType('custom')
+    setCustomTypeId(id)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!accountId || !amount) return
     if (type === 'transfer' && !toAccountId) return
+    if (type === 'custom' && !customTypeId) return
 
     setSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSaving(false); return }
 
-    const amountNum = parseFloat(amount)
-    const toAmountNum = toAmount ? parseFloat(toAmount) : null
+    const amountNum = parseAmount(amount)
+    const toAmountNum = toAmount ? parseAmount(toAmount) : null
     const exchangeRate = isCrossCurrency && amountNum && toAmountNum
       ? amountNum / toAmountNum
       : null
@@ -75,8 +103,11 @@ export default function TransactionForm({ accounts, categories, subcategories, d
       amount: amountNum,
       to_amount: type === 'transfer' ? (isCrossCurrency ? toAmountNum : amountNum) : null,
       exchange_rate: exchangeRate,
-      category_id: type !== 'transfer' && categoryId ? categoryId : null,
-      subcategory_id: type !== 'transfer' && subcategoryId ? subcategoryId : null,
+      category_id: type === 'income' || type === 'expense' ? (categoryId || null) : null,
+      subcategory_id: type === 'income' || type === 'expense' ? (subcategoryId || null) : null,
+      custom_type_id: type === 'custom' ? customTypeId : null,
+      is_gain: type === 'custom' ? isGain : null,
+      transfer_fee: type === 'transfer' ? (parseAmount(transferFee) || null) : null,
       date,
       note: note || null,
     }
@@ -91,7 +122,7 @@ export default function TransactionForm({ accounts, categories, subcategories, d
     onSuccess()
   }
 
-  const TYPE_BUTTONS: { key: TransactionType; label: string; active: string }[] = [
+  const STANDARD_BUTTONS: { key: TransactionType; label: string; active: string }[] = [
     { key: 'income', label: 'Income', active: 'bg-green-600 text-white' },
     { key: 'expense', label: 'Expense', active: 'bg-red-600 text-white' },
     { key: 'transfer', label: 'Transfer', active: 'bg-blue-600 text-white' },
@@ -99,8 +130,10 @@ export default function TransactionForm({ accounts, categories, subcategories, d
 
   return (
     <form onSubmit={handleSubmit} className="border rounded-lg p-4 space-y-4 bg-muted/20">
+
+      {/* Standard type buttons */}
       <div className="flex gap-2">
-        {TYPE_BUTTONS.map(({ key, label, active }) => (
+        {STANDARD_BUTTONS.map(({ key, label, active }) => (
           <button
             key={key}
             type="button"
@@ -113,6 +146,53 @@ export default function TransactionForm({ accounts, categories, subcategories, d
           </button>
         ))}
       </div>
+
+      {/* Custom type chips */}
+      {transactionTypes.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {transactionTypes.map(t => {
+            const isActive = type === 'custom' && customTypeId === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => selectCustomType(t.id)}
+                className={`text-sm px-3 py-1 rounded-full border font-medium transition-colors ${
+                  isActive
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
+                }`}
+              >
+                {t.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* +/- toggle for custom types */}
+      {type === 'custom' && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsGain(true)}
+            className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
+              isGain ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            + Gain
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsGain(false)}
+            className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
+              !isGain ? 'bg-red-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            − Loss
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
@@ -174,46 +254,69 @@ export default function TransactionForm({ accounts, categories, subcategories, d
 
       <div className={`grid gap-3 ${isCrossCurrency ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <div className="space-y-1">
-          <Label className="text-xs">
-            Amount{fromAccount ? ` (${fromAccount.currency})` : ''}
-          </Label>
-          <Input
-            type="number"
-            min="0"
-            step="any"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            placeholder="0"
-            className="text-sm"
-            required
-          />
+          <Label className="text-xs">Amount</Label>
+          <div className="flex items-center border rounded-md overflow-hidden bg-background text-sm">
+            <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
+              {fromAccount ? (CURRENCY_SYMBOL[fromAccount.currency] ?? fromAccount.currency) : ''}
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={amount}
+              onChange={e => setAmount(formatAmount(e.target.value))}
+              placeholder="0"
+              className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
+              required
+            />
+          </div>
         </div>
         {isCrossCurrency && (
           <div className="space-y-1">
-            <Label className="text-xs">
-              To Amount{toAccount ? ` (${toAccount.currency})` : ''}
-            </Label>
-            <Input
-              type="number"
-              min="0"
-              step="any"
-              value={toAmount}
-              onChange={e => setToAmount(e.target.value)}
-              placeholder="0"
-              className="text-sm"
-              required
-            />
+            <Label className="text-xs">To Amount</Label>
+            <div className="flex items-center border rounded-md overflow-hidden bg-background text-sm">
+              <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
+                {toAccount ? (CURRENCY_SYMBOL[toAccount.currency] ?? toAccount.currency) : ''}
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={toAmount}
+                onChange={e => setToAmount(formatAmount(e.target.value))}
+                placeholder="0"
+                className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
+                required
+              />
+            </div>
           </div>
         )}
       </div>
 
-      {isCrossCurrency && amount && toAmount && parseFloat(toAmount) > 0 && (
+      {isCrossCurrency && amount && toAmount && parseAmount(toAmount) > 0 && (
         <p className="text-xs text-muted-foreground">
-          Rate: 1 {toAccount?.currency} = {(parseFloat(amount) / parseFloat(toAmount)).toLocaleString()} {fromAccount?.currency}
+          Rate: 1 {toAccount?.currency} = {(parseAmount(amount) / parseAmount(toAmount)).toLocaleString()} {fromAccount?.currency}
         </p>
       )}
 
-      {type !== 'transfer' && (
+      {type === 'transfer' && (
+        <div className="space-y-1">
+          <Label className="text-xs">Transfer Fee (optional)</Label>
+          <div className="flex items-center border rounded-md overflow-hidden bg-background text-sm">
+            <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
+              {fromAccount ? (CURRENCY_SYMBOL[fromAccount.currency] ?? fromAccount.currency) : ''}
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={transferFee}
+              onChange={e => setTransferFee(formatAmount(e.target.value))}
+              placeholder="0"
+              className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
+            />
+          </div>
+        </div>
+      )}
+
+      {(type === 'income' || type === 'expense') && (
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Category</Label>
