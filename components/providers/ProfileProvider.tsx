@@ -10,7 +10,7 @@ type Ctx = {
 }
 
 const ProfileContext = createContext<Ctx>({
-  profile: { display_name: null, timezone: 'auto', theme: 'light' },
+  profile: { display_name: null, timezone: 'auto', theme: 'light', finance_monthly_start_day: 1 },
   loading: true,
   updateProfile: async () => {},
 })
