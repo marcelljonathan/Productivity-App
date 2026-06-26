@@ -8,11 +8,11 @@ export default function MonthlyStartDayManager() {
   const [editing, setEditing] = useState(false)
   const [input, setInput] = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const n = parseInt(input, 10)
     if (!isNaN(n) && n >= 1 && n <= 28) {
-      setStartDay(n)
+      await setStartDay(n)
       setEditing(false)
     }
   }

@@ -22,10 +22,13 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
   const categoryTotals: Record<string, { IDR: number; USD: number }> = {}
 
   for (const tx of transactions) {
-    if (tx.type === 'transfer') continue
     const acc = accounts.find(a => a.id === tx.account_id)
     if (!acc) continue
     const cur = acc.currency
+    if (tx.type === 'transfer') {
+      if (tx.transfer_fee) totals[cur].expense += tx.transfer_fee
+      continue
+    }
     if (tx.type === 'income') totals[cur].income += tx.amount
     if (tx.type === 'expense') {
       totals[cur].expense += tx.amount
@@ -110,7 +113,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
           <p className="text-xs text-muted-foreground">Active days</p>
         </div>
         <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
-          <p className="text-2xl font-semibold">{transactions.filter(t => t.type !== 'transfer').length}</p>
+          <p className="text-2xl font-semibold">{transactions.length}</p>
           <p className="text-xs text-muted-foreground">Transactions</p>
         </div>
       </div>

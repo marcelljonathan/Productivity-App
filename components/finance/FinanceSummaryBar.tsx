@@ -123,35 +123,59 @@ export default function FinanceSummaryBar({ accounts, balances, accountTypes, tr
 
       {/* Accounts view */}
       {view === 'accounts' && (
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {accounts.filter(a => a.currency === currency).length === 0 ? (
-            <p className="text-sm text-muted-foreground py-3">No {currency} accounts yet.</p>
-          ) : (
-            accounts.filter(a => a.currency === currency).map(acc => {
-              const typeName = accountTypes.find(t => t.id === acc.account_type_id)?.name
-              return (
-                <div key={acc.id} className="flex-shrink-0 border border-gray-300 dark:border-border rounded-lg px-4 py-3 min-w-[160px] space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium truncate">{acc.name}</span>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${CURRENCY_BADGE[acc.currency]}`}>
-                      {acc.currency}
-                    </span>
+        accounts.filter(a => a.currency === currency).length === 0 ? (
+          <p className="text-sm text-muted-foreground py-3">No {currency} accounts yet.</p>
+        ) : (
+          <>
+            {/* Mobile: 2-col grid — Desktop: horizontal scroll row */}
+            <div className="grid grid-cols-2 gap-3 md:hidden">
+              {accounts.filter(a => a.currency === currency).map(acc => {
+                const typeName = accountTypes.find(t => t.id === acc.account_type_id)?.name
+                return (
+                  <div key={acc.id} className="border border-gray-300 dark:border-border rounded-lg px-4 py-3 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium truncate">{acc.name}</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${CURRENCY_BADGE[acc.currency]}`}>
+                        {acc.currency}
+                      </span>
+                    </div>
+                    {typeName && <p className="text-[11px] text-muted-foreground">{typeName}</p>}
+                    {visible ? (
+                      <p className="text-base font-bold">
+                        {formatCurrency(balances[acc.id] ?? acc.starting_balance, acc.currency)}
+                      </p>
+                    ) : (
+                      <p className="text-base font-bold tracking-widest text-muted-foreground">••••••</p>
+                    )}
                   </div>
-                  {typeName && (
-                    <p className="text-[11px] text-muted-foreground">{typeName}</p>
-                  )}
-                  {visible ? (
-                    <p className="text-base font-bold">
-                      {formatCurrency(balances[acc.id] ?? acc.starting_balance, acc.currency)}
-                    </p>
-                  ) : (
-                    <p className="text-base font-bold tracking-widest text-muted-foreground">••••••</p>
-                  )}
-                </div>
-              )
-            })
-          )}
-        </div>
+                )
+              })}
+            </div>
+            <div className="hidden md:flex gap-3 overflow-x-auto pb-1">
+              {accounts.filter(a => a.currency === currency).map(acc => {
+                const typeName = accountTypes.find(t => t.id === acc.account_type_id)?.name
+                return (
+                  <div key={acc.id} className="flex-shrink-0 border border-gray-300 dark:border-border rounded-lg px-4 py-3 min-w-[160px] space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium truncate">{acc.name}</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${CURRENCY_BADGE[acc.currency]}`}>
+                        {acc.currency}
+                      </span>
+                    </div>
+                    {typeName && <p className="text-[11px] text-muted-foreground">{typeName}</p>}
+                    {visible ? (
+                      <p className="text-base font-bold">
+                        {formatCurrency(balances[acc.id] ?? acc.starting_balance, acc.currency)}
+                      </p>
+                    ) : (
+                      <p className="text-base font-bold tracking-widest text-muted-foreground">••••••</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )
       )}
     </div>
   )

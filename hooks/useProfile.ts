@@ -7,9 +7,10 @@ export type Profile = {
   display_name: string | null
   timezone: string
   theme: 'light' | 'dark'
+  finance_monthly_start_day: number
 }
 
-const DEFAULT: Profile = { display_name: null, timezone: 'auto', theme: 'light' }
+const DEFAULT: Profile = { display_name: null, timezone: 'auto', theme: 'light', finance_monthly_start_day: 1 }
 
 export function useProfile(userId: string) {
   const [profile, setProfile] = useState<Profile>(DEFAULT)
@@ -20,7 +21,7 @@ export function useProfile(userId: string) {
     async function load() {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, timezone, theme')
+        .select('display_name, timezone, theme, finance_monthly_start_day')
         .eq('id', userId)
         .single()
       if (data) setProfile(data as Profile)
