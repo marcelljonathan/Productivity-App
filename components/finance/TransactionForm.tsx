@@ -147,52 +147,32 @@ export default function TransactionForm({ accounts, categories, subcategories, t
         ))}
       </div>
 
-      {/* Custom type chips */}
+      {/* Custom type row */}
       {transactionTypes.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {transactionTypes.map(t => {
-            const isActive = type === 'custom' && customTypeId === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => selectCustomType(t.id)}
-                className={`text-sm px-3 py-1 rounded-full border font-medium transition-colors ${
-                  isActive
-                    ? 'bg-purple-600 text-white border-purple-600'
-                    : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
-                }`}
-              >
-                {t.name}
-              </button>
-            )
-          })}
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Custom</p>
+          <div className="flex gap-2 flex-wrap">
+            {transactionTypes.map(t => {
+              const isActive = type === 'custom' && customTypeId === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => selectCustomType(t.id)}
+                  className={`flex-1 min-w-[80px] text-sm py-1.5 rounded-md font-medium transition-colors ${
+                    isActive
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
-      {/* +/- toggle for custom types */}
-      {type === 'custom' && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setIsGain(true)}
-            className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
-              isGain ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            + Gain
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsGain(false)}
-            className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
-              !isGain ? 'bg-red-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            − Loss
-          </button>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
@@ -256,6 +236,17 @@ export default function TransactionForm({ accounts, categories, subcategories, t
         <div className="space-y-1">
           <Label className="text-xs">Amount</Label>
           <div className="flex items-center border rounded-md overflow-hidden bg-background text-sm">
+            {type === 'custom' && (
+              <button
+                type="button"
+                onClick={() => setIsGain(g => !g)}
+                className={`px-2.5 py-1.5 border-r font-bold shrink-0 transition-colors ${
+                  isGain ? 'text-green-600 bg-green-50 dark:bg-green-950/30' : 'text-red-600 bg-red-50 dark:bg-red-950/30'
+                }`}
+              >
+                {isGain ? '+' : '−'}
+              </button>
+            )}
             <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
               {fromAccount ? (CURRENCY_SYMBOL[fromAccount.currency] ?? fromAccount.currency) : ''}
             </span>

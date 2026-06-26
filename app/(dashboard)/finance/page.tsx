@@ -217,6 +217,8 @@ export default function FinancePage() {
               transactions={periodTxs}
               accounts={accounts}
               categories={categories}
+              subcategories={subcategories}
+              transactionTypes={transactionTypes}
             />
           )}
         </div>
