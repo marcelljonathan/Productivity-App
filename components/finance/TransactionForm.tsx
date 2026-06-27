@@ -24,8 +24,10 @@ const CURRENCY_SYMBOL: Record<string, string> = {
 }
 
 function formatAmount(value: string): string {
-  const normalized = value.replace(',', '.')
-  const stripped = normalized.replace(/[^\d.]/g, '')
+  const lastCharIsComma = value.endsWith(',')
+  const noCommas = value.replace(/,/g, '')
+  const withDecimal = lastCharIsComma ? noCommas + '.' : noCommas
+  const stripped = withDecimal.replace(/[^\d.]/g, '')
   const parts = stripped.split('.')
   const integer = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return parts.length > 1 ? `${integer}.${parts[1]}` : integer
