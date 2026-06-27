@@ -38,7 +38,8 @@ export function AmountInput({ value, onChange, placeholder = '0', className, req
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const input = e.target
     const cursor = input.selectionStart ?? input.value.length
-    const contentBefore = input.value.slice(0, cursor).replace(/,/g, '').length
+    const lastIsComma = input.value.endsWith(',')
+    const contentBefore = input.value.slice(0, cursor).replace(/,/g, '').length + (lastIsComma ? 1 : 0)
 
     const clean = normalize(input.value)
     const display = formatDisplay(clean)
