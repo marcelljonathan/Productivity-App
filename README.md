@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ruteen
 
-## Getting Started
+A personal productivity web app for managing daily routines, tasks, and finances in one place.
 
-First, run the development server:
+Live: [productivity-app-delta-olive.vercel.app](https://productivity-app-delta-olive.vercel.app)
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL + Auth + RLS)
+- **Deployment**: Vercel
+
+## Features
+
+### Task Management
+- Daily task list with date navigation
+- Subtasks per task
+- Task statuses: pending, done, failed
+- Calendar view showing task activity per day
+- Daily / Weekly / Monthly summary views
+- Streak counter tracking consecutive days of full task completion
+- Failed task log grouped by week
+
+### Finance
+- Multi-account support with IDR and USD currencies
+- Transaction types: Income, Expense, Transfer, and custom user-defined types (e.g. Trading)
+- Income/expense categories and subcategories, fully user-managed
+- Transfer transactions with optional transfer fee (counted as expense)
+- Cross-currency transfers with automatic exchange rate calculation
+- Custom transaction types with +/- gain/loss toggle (for tracking trading P&L separately from living expenses)
+- Customizable monthly period start day — useful if your salary arrives mid-month; automatically shifts to the previous Friday if the date falls on a weekend
+- Privacy eye toggle — hides all amounts with •••••• across the entire finance section
+- Summary views:
+  - **Summary bar** — Total Equity, Income, Expense, Net Income with IDR/USD toggle and account balance tab
+  - **Daily calendar** — color-coded cells (green/red/yellow) with net income per day
+  - **Weekly** — bar chart comparing income vs expense per day, with weekly totals
+  - **Monthly** — income, expense, net by currency; active days; top expense categories
+
+### General
+- Light and dark mode
+- Responsive layout with sidebar (desktop) and bottom nav (mobile)
+- Per-user data with Supabase Row Level Security
+
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a `.env.local` file with your Supabase credentials:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```

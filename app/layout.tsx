@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Productivity App",
-  description: "Personal task tracker with streak accountability",
+  title: "Ruteen",
+  description: "Personal routine tracker — tasks, finance, and streaks",
 };
 
 export const viewport = {
