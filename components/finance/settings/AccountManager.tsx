@@ -22,9 +22,19 @@ type Props = {
 
 const CURRENCY_SYMBOL: Record<string, string> = { IDR: 'Rp', USD: '$' }
 
-function formatAmount(value: string): string {
-  const stripped = value.replace(/[^\d.]/g, '')
-  const parts = stripped.split('.')
+function normalizeAmount(value: string): string {
+  const lastCharIsComma = value.endsWith(',')
+  const noCommas = value.replace(/,/g, '')
+  const withDecimal = lastCharIsComma ? noCommas + '.' : noCommas
+  const stripped = withDecimal.replace(/[^\d.]/g, '')
+  const firstDot = stripped.indexOf('.')
+  if (firstDot === -1) return stripped
+  return stripped.slice(0, firstDot + 1) + stripped.slice(firstDot + 1).replace(/\./g, '')
+}
+
+function formatAmount(raw: string): string {
+  const clean = raw.replace(/,/g, '')
+  const parts = clean.split('.')
   const integer = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return parts.length > 1 ? `${integer}.${parts[1]}` : integer
 }
@@ -137,7 +147,9 @@ export default function AccountManager({
                 type="text"
                 inputMode="decimal"
                 value={editBalance}
-                onChange={e => setEditBalance(formatAmount(e.target.value))}
+                onChange={e => setEditBalance(normalizeAmount(e.target.value))}
+                onBlur={() => setEditBalance(formatAmount(editBalance))}
+                onFocus={() => setEditBalance(editBalance.replace(/,/g, ''))}
                 className="flex-1 px-2 py-1.5 bg-transparent outline-none min-w-0"
               />
             </div>
@@ -329,7 +341,9 @@ export default function AccountManager({
                   type="text"
                   inputMode="decimal"
                   value={startingBalance}
-                  onChange={e => setStartingBalance(formatAmount(e.target.value))}
+                  onChange={e => setStartingBalance(normalizeAmount(e.target.value))}
+                  onBlur={() => setStartingBalance(formatAmount(startingBalance))}
+                  onFocus={() => setStartingBalance(startingBalance.replace(/,/g, ''))}
                   placeholder="0"
                   className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
                 />

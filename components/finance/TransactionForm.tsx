@@ -23,12 +23,19 @@ const CURRENCY_SYMBOL: Record<string, string> = {
   USD: '$',
 }
 
-function formatAmount(value: string): string {
+function normalizeAmount(value: string): string {
   const lastCharIsComma = value.endsWith(',')
   const noCommas = value.replace(/,/g, '')
   const withDecimal = lastCharIsComma ? noCommas + '.' : noCommas
   const stripped = withDecimal.replace(/[^\d.]/g, '')
-  const parts = stripped.split('.')
+  const firstDot = stripped.indexOf('.')
+  if (firstDot === -1) return stripped
+  return stripped.slice(0, firstDot + 1) + stripped.slice(firstDot + 1).replace(/\./g, '')
+}
+
+function formatAmount(raw: string): string {
+  const clean = raw.replace(/,/g, '')
+  const parts = clean.split('.')
   const integer = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return parts.length > 1 ? `${integer}.${parts[1]}` : integer
 }
@@ -257,7 +264,9 @@ export default function TransactionForm({ accounts, categories, subcategories, t
               type="text"
               inputMode="decimal"
               value={amount}
-              onChange={e => setAmount(formatAmount(e.target.value))}
+              onChange={e => setAmount(normalizeAmount(e.target.value))}
+              onBlur={() => setAmount(formatAmount(amount))}
+              onFocus={() => setAmount(amount.replace(/,/g, ''))}
               placeholder="0"
               className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
               required
@@ -275,7 +284,9 @@ export default function TransactionForm({ accounts, categories, subcategories, t
                 type="text"
                 inputMode="decimal"
                 value={toAmount}
-                onChange={e => setToAmount(formatAmount(e.target.value))}
+                onChange={e => setToAmount(normalizeAmount(e.target.value))}
+                onBlur={() => setToAmount(formatAmount(toAmount))}
+                onFocus={() => setToAmount(toAmount.replace(/,/g, ''))}
                 placeholder="0"
                 className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
                 required
@@ -302,7 +313,9 @@ export default function TransactionForm({ accounts, categories, subcategories, t
               type="text"
               inputMode="decimal"
               value={transferFee}
-              onChange={e => setTransferFee(formatAmount(e.target.value))}
+              onChange={e => setTransferFee(normalizeAmount(e.target.value))}
+              onBlur={() => setTransferFee(formatAmount(transferFee))}
+              onFocus={() => setTransferFee(transferFee.replace(/,/g, ''))}
               placeholder="0"
               className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
             />
