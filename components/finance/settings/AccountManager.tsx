@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Trash2, Pencil, Check, X, Plus, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react"
+import { AmountInput } from "@/components/ui/AmountInput"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 
 type Props = {
@@ -22,25 +23,8 @@ type Props = {
 
 const CURRENCY_SYMBOL: Record<string, string> = { IDR: 'Rp', USD: '$' }
 
-function normalizeAmount(value: string): string {
-  const lastCharIsComma = value.endsWith(',')
-  const noCommas = value.replace(/,/g, '')
-  const withDecimal = lastCharIsComma ? noCommas + '.' : noCommas
-  const stripped = withDecimal.replace(/[^\d.]/g, '')
-  const firstDot = stripped.indexOf('.')
-  if (firstDot === -1) return stripped
-  return stripped.slice(0, firstDot + 1) + stripped.slice(firstDot + 1).replace(/\./g, '')
-}
-
-function formatAmount(raw: string): string {
-  const clean = raw.replace(/,/g, '')
-  const parts = clean.split('.')
-  const integer = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  return parts.length > 1 ? `${integer}.${parts[1]}` : integer
-}
-
-function parseAmount(display: string): number {
-  return parseFloat(display.replace(/,/g, '')) || 0
+function parseAmount(value: string): number {
+  return parseFloat(value.replace(/,/g, '')) || 0
 }
 
 const NO_TYPE_KEY = '__none__'
@@ -89,7 +73,7 @@ export default function AccountManager({
   function startEdit(acc: FinanceAccount) {
     setEditId(acc.id)
     setEditName(acc.name)
-    setEditBalance(formatAmount(acc.starting_balance.toString()))
+    setEditBalance(acc.starting_balance.toString())
     setEditTypeId(acc.account_type_id ?? '')
   }
 
@@ -143,13 +127,9 @@ export default function AccountManager({
               <span className="px-2 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
                 {CURRENCY_SYMBOL[acc.currency] ?? acc.currency}
               </span>
-              <input
-                type="text"
-                inputMode="decimal"
+              <AmountInput
                 value={editBalance}
-                onChange={e => setEditBalance(normalizeAmount(e.target.value))}
-                onBlur={() => setEditBalance(formatAmount(editBalance))}
-                onFocus={() => setEditBalance(editBalance.replace(/,/g, ''))}
+                onChange={setEditBalance}
                 className="flex-1 px-2 py-1.5 bg-transparent outline-none min-w-0"
               />
             </div>
@@ -337,13 +317,9 @@ export default function AccountManager({
                 <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
                   {CURRENCY_SYMBOL[currency] ?? currency}
                 </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
+                <AmountInput
                   value={startingBalance}
-                  onChange={e => setStartingBalance(normalizeAmount(e.target.value))}
-                  onBlur={() => setStartingBalance(formatAmount(startingBalance))}
-                  onFocus={() => setStartingBalance(startingBalance.replace(/,/g, ''))}
+                  onChange={setStartingBalance}
                   placeholder="0"
                   className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
                 />

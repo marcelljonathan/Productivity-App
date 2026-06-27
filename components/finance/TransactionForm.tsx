@@ -6,6 +6,7 @@ import { FinanceAccount, FinanceCategory, FinanceSubcategory, FinanceTransaction
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { AmountInput } from "@/components/ui/AmountInput"
 
 type Props = {
   accounts: FinanceAccount[]
@@ -23,25 +24,8 @@ const CURRENCY_SYMBOL: Record<string, string> = {
   USD: '$',
 }
 
-function normalizeAmount(value: string): string {
-  const lastCharIsComma = value.endsWith(',')
-  const noCommas = value.replace(/,/g, '')
-  const withDecimal = lastCharIsComma ? noCommas + '.' : noCommas
-  const stripped = withDecimal.replace(/[^\d.]/g, '')
-  const firstDot = stripped.indexOf('.')
-  if (firstDot === -1) return stripped
-  return stripped.slice(0, firstDot + 1) + stripped.slice(firstDot + 1).replace(/\./g, '')
-}
-
-function formatAmount(raw: string): string {
-  const clean = raw.replace(/,/g, '')
-  const parts = clean.split('.')
-  const integer = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  return parts.length > 1 ? `${integer}.${parts[1]}` : integer
-}
-
-function parseAmount(display: string): number {
-  return parseFloat(display.replace(/,/g, '')) || 0
+function parseAmount(value: string): number {
+  return parseFloat(value.replace(/,/g, '')) || 0
 }
 
 export default function TransactionForm({ accounts, categories, subcategories, transactionTypes, defaultDate, transaction, onSuccess, onCancel }: Props) {
@@ -52,9 +36,9 @@ export default function TransactionForm({ accounts, categories, subcategories, t
   const [isGain, setIsGain] = useState<boolean>(transaction?.is_gain ?? true)
   const [accountId, setAccountId] = useState(transaction?.account_id ?? accounts[0]?.id ?? '')
   const [toAccountId, setToAccountId] = useState(transaction?.to_account_id ?? '')
-  const [amount, setAmount] = useState(transaction?.amount ? formatAmount(transaction.amount.toString()) : '')
-  const [toAmount, setToAmount] = useState(transaction?.to_amount ? formatAmount(transaction.to_amount.toString()) : '')
-  const [transferFee, setTransferFee] = useState(transaction?.transfer_fee ? formatAmount(transaction.transfer_fee.toString()) : '')
+  const [amount, setAmount] = useState(transaction?.amount?.toString() ?? '')
+  const [toAmount, setToAmount] = useState(transaction?.to_amount?.toString() ?? '')
+  const [transferFee, setTransferFee] = useState(transaction?.transfer_fee?.toString() ?? '')
   const [categoryId, setCategoryId] = useState(transaction?.category_id ?? '')
   const [subcategoryId, setSubcategoryId] = useState(transaction?.subcategory_id ?? '')
   const [date, setDate] = useState(transaction?.date ?? defaultDate)
@@ -260,13 +244,9 @@ export default function TransactionForm({ accounts, categories, subcategories, t
             <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
               {fromAccount ? (CURRENCY_SYMBOL[fromAccount.currency] ?? fromAccount.currency) : ''}
             </span>
-            <input
-              type="text"
-              inputMode="decimal"
+            <AmountInput
               value={amount}
-              onChange={e => setAmount(normalizeAmount(e.target.value))}
-              onBlur={() => setAmount(formatAmount(amount))}
-              onFocus={() => setAmount(amount.replace(/,/g, ''))}
+              onChange={setAmount}
               placeholder="0"
               className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
               required
@@ -280,13 +260,9 @@ export default function TransactionForm({ accounts, categories, subcategories, t
               <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
                 {toAccount ? (CURRENCY_SYMBOL[toAccount.currency] ?? toAccount.currency) : ''}
               </span>
-              <input
-                type="text"
-                inputMode="decimal"
+              <AmountInput
                 value={toAmount}
-                onChange={e => setToAmount(normalizeAmount(e.target.value))}
-                onBlur={() => setToAmount(formatAmount(toAmount))}
-                onFocus={() => setToAmount(toAmount.replace(/,/g, ''))}
+                onChange={setToAmount}
                 placeholder="0"
                 className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
                 required
@@ -309,13 +285,9 @@ export default function TransactionForm({ accounts, categories, subcategories, t
             <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">
               {fromAccount ? (CURRENCY_SYMBOL[fromAccount.currency] ?? fromAccount.currency) : ''}
             </span>
-            <input
-              type="text"
-              inputMode="decimal"
+            <AmountInput
               value={transferFee}
-              onChange={e => setTransferFee(normalizeAmount(e.target.value))}
-              onBlur={() => setTransferFee(formatAmount(transferFee))}
-              onFocus={() => setTransferFee(transferFee.replace(/,/g, ''))}
+              onChange={setTransferFee}
               placeholder="0"
               className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0"
             />
