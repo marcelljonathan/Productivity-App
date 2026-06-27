@@ -135,7 +135,7 @@ export default function AccountManager({
               </span>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 value={editBalance}
                 onChange={e => setEditBalance(formatAmount(e.target.value))}
                 className="flex-1 px-2 py-1.5 bg-transparent outline-none min-w-0"
@@ -327,7 +327,7 @@ export default function AccountManager({
                 </span>
                 <input
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   value={startingBalance}
                   onChange={e => setStartingBalance(formatAmount(e.target.value))}
                   placeholder="0"

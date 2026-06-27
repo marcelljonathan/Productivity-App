@@ -252,7 +252,7 @@ export default function TransactionForm({ accounts, categories, subcategories, t
             </span>
             <input
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               value={amount}
               onChange={e => setAmount(formatAmount(e.target.value))}
               placeholder="0"
@@ -270,7 +270,7 @@ export default function TransactionForm({ accounts, categories, subcategories, t
               </span>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 value={toAmount}
                 onChange={e => setToAmount(formatAmount(e.target.value))}
                 placeholder="0"
@@ -297,7 +297,7 @@ export default function TransactionForm({ accounts, categories, subcategories, t
             </span>
             <input
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               value={transferFee}
               onChange={e => setTransferFee(formatAmount(e.target.value))}
               placeholder="0"
