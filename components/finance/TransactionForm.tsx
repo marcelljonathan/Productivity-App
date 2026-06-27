@@ -24,7 +24,8 @@ const CURRENCY_SYMBOL: Record<string, string> = {
 }
 
 function formatAmount(value: string): string {
-  const stripped = value.replace(/[^\d.]/g, '')
+  const normalized = value.replace(',', '.')
+  const stripped = normalized.replace(/[^\d.]/g, '')
   const parts = stripped.split('.')
   const integer = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return parts.length > 1 ? `${integer}.${parts[1]}` : integer
