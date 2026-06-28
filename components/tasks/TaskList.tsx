@@ -129,6 +129,14 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
     onRefresh()
   }
 
+  async function handleEditDescription(id: string, description: string) {
+    await supabase.from('tasks').update({
+      description: description || null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', id)
+    onRefresh()
+  }
+
   async function handleStatusChange(id: string, status: TaskStatus, extra?: Partial<Task>) {
     await supabase.from('tasks').update({
       status,
@@ -220,6 +228,7 @@ export default function TaskList({ tasks, date, onRefresh }: Props) {
             onStatusChange={handleStatusChange}
             onMove={handleMove}
             onEdit={openEdit}
+            onEditDescription={handleEditDescription}
             isEditing={editingTask?.id === task.id}
             onSubtaskProgress={handleSubtaskProgress}
           />

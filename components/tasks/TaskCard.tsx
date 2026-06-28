@@ -5,6 +5,7 @@ import { Task, TaskStatus } from "@/lib/types"
 import { isCancellationAllowed, getTodayLocalDate } from "@/lib/utils/timezone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { useSubtasks } from "@/hooks/useSubtasks"
 import SubtaskList from "./SubtaskList"
 
@@ -40,16 +41,23 @@ type Props = {
   onStatusChange: (id: string, status: TaskStatus, extra?: Partial<Task>) => void
   onMove: (id: string, newDate: string) => void
   onEdit: (task: Task | null) => void
+  onEditDescription?: (id: string, description: string) => void
   onSubtaskProgress?: (taskId: string, done: number, total: number) => void
   isEditing?: boolean
 }
 
-export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubtaskProgress, isEditing }: Props) {
+export default function TaskCard({ task, onStatusChange, onMove, onEdit, onEditDescription, onSubtaskProgress, isEditing }: Props) {
   const [cancelMode, setCancelMode] = useState(false)
   const [moveMode, setMoveMode] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
   const [moveDate, setMoveDate] = useState("")
   const [showDesc, setShowDesc] = useState(false)
+  const [descEditMode, setDescEditMode] = useState(false)
+  const [descDraft, setDescDraft] = useState(task.description ?? '')
+
+  useEffect(() => {
+    setDescDraft(task.description ?? '')
+  }, [task.description])
 
   const { subtasks, loading: subtasksLoading, toggleSubtask } = useSubtasks(task.id)
 
@@ -133,18 +141,50 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onSubta
         />
       )}
 
-      {task.description && (
+      {task.status === 'done' && descEditMode ? (
+        <div className="space-y-2">
+          <Textarea
+            value={descDraft}
+            onChange={e => setDescDraft(e.target.value)}
+            placeholder="Add a description..."
+            rows={3}
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => { onEditDescription?.(task.id, descDraft); setDescEditMode(false) }}>
+              Save
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setDescDraft(task.description ?? ''); setDescEditMode(false) }}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
         <>
-          <div className="border-t border-gray-200" />
-          <button
-            onClick={() => setShowDesc(v => !v)}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <span>{showDesc ? '▾' : '▸'}</span>
-            Description
-          </button>
-          {showDesc && (
-            <p className="text-sm text-muted-foreground">{task.description}</p>
+          {task.description && (
+            <>
+              <div className="border-t border-gray-200" />
+              <button
+                onClick={() => setShowDesc(v => !v)}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <span>{showDesc ? '▾' : '▸'}</span>
+                Description
+              </button>
+              {showDesc && (
+                <p className="text-sm text-muted-foreground">{task.description}</p>
+              )}
+            </>
+          )}
+          {task.status === 'done' && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => setDescEditMode(true)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Edit description
+              </button>
+            </div>
           )}
         </>
       )}
