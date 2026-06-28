@@ -172,7 +172,7 @@ export default function TaskCard({ task, onStatusChange, onMove, onEdit, onEditD
                 Description
               </button>
               {showDesc && (
-                <p className="text-sm text-muted-foreground">{task.description}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{task.description}</p>
               )}
             </>
           )}
