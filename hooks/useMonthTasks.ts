@@ -12,7 +12,8 @@ export function useMonthTasks(yearMonth: string) {
     setLoading(true)
     const [year, month] = yearMonth.split('-').map(Number)
     const firstDay = `${yearMonth}-01`
-    const lastDay = new Date(year, month, 0).toISOString().split('T')[0]
+    const daysInMonth = new Date(year, month, 0).getDate()
+    const lastDay = `${yearMonth}-${String(daysInMonth).padStart(2, '0')}`
 
     const supabase = createClient()
     const { data } = await supabase

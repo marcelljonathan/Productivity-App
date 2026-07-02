@@ -22,7 +22,7 @@ export function computeStreak(tasks: Task[], todayLocalDate: string): number {
   let streak = 0
 
   for (const date of dates) {
-    const relevant = tasksByDate[date].filter(t => t.status !== 'cancelled')
+    const relevant = tasksByDate[date].filter(t => t.status !== 'cancelled' && t.status !== 'moved')
 
     if (relevant.length === 0) continue
 
@@ -59,7 +59,7 @@ export function computeLongestStreak(tasks: Task[], todayLocalDate: string): num
   let current = 0
 
   for (const date of dates) {
-    const relevant = tasksByDate[date].filter(t => t.status !== 'cancelled')
+    const relevant = tasksByDate[date].filter(t => t.status !== 'cancelled' && t.status !== 'moved')
     if (relevant.length === 0) continue
 
     const allDone = relevant.every(t => t.status === 'done')
@@ -86,7 +86,7 @@ export function buildDayHistory(tasks: Task[], todayLocalDate: string): DayRecor
     .filter(d => d <= todayLocalDate)
     .sort((a, b) => b.localeCompare(a))
     .map(date => {
-      const relevant = tasksByDate[date].filter(t => t.status !== 'cancelled')
+      const relevant = tasksByDate[date].filter(t => t.status !== 'cancelled' && t.status !== 'moved')
       const done = relevant.filter(t => t.status === 'done').length
       return {
         date,
