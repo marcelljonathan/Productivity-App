@@ -107,18 +107,6 @@ export default function TransactionList({ transactions, date, accounts, categori
         </div>
       )}
 
-      {showForm && (
-        <TransactionForm
-          accounts={accounts}
-          categories={categories}
-          subcategories={subcategories}
-          transactionTypes={transactionTypes}
-          defaultDate={date}
-          onSuccess={handleSuccess}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
-
       {transactions.length === 0 && !showForm && (
         <p className="text-sm text-muted-foreground text-center py-6">No transactions on this day.</p>
       )}
@@ -126,8 +114,19 @@ export default function TransactionList({ transactions, date, accounts, categori
       <div className="space-y-2">
         {transactions.map(tx => (
           <div key={tx.id}>
+            <TransactionCard
+              transaction={tx}
+              accounts={accounts}
+              categories={categories}
+              subcategories={subcategories}
+              transactionTypes={transactionTypes}
+              visible={visible}
+              isEditing={editingTx?.id === tx.id}
+              onDeleted={onRefresh}
+              onEdit={handleEdit}
+            />
             {editingTx?.id === tx.id && (
-              <div className="mb-2">
+              <div className="mt-2">
                 <TransactionForm
                   accounts={accounts}
                   categories={categories}
@@ -140,17 +139,6 @@ export default function TransactionList({ transactions, date, accounts, categori
                 />
               </div>
             )}
-            <TransactionCard
-              transaction={tx}
-              accounts={accounts}
-              categories={categories}
-              subcategories={subcategories}
-              transactionTypes={transactionTypes}
-              visible={visible}
-              isEditing={editingTx?.id === tx.id}
-              onDeleted={onRefresh}
-              onEdit={handleEdit}
-            />
           </div>
         ))}
       </div>
@@ -164,6 +152,18 @@ export default function TransactionList({ transactions, date, accounts, categori
         <Plus size={14} className="mr-1" />
         Add Transaction
       </Button>
+
+      {showForm && (
+        <TransactionForm
+          accounts={accounts}
+          categories={categories}
+          subcategories={subcategories}
+          transactionTypes={transactionTypes}
+          defaultDate={date}
+          onSuccess={handleSuccess}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
     </div>
   )
 }

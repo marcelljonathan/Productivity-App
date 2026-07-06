@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { FinanceAccount, FinanceCategory, FinanceSubcategory, FinanceTransaction, FinanceTransactionType, TransactionType } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -52,14 +52,18 @@ export default function TransactionForm({ accounts, categories, subcategories, t
   const filteredCategories = categories.filter(c => c.type === type as string)
   const filteredSubcategories = subcategories.filter(s => s.category_id === categoryId)
 
+  const didMountType = useRef(false)
   useEffect(() => {
+    if (!didMountType.current) { didMountType.current = true; return }
     if (type !== 'custom') {
       setCategoryId('')
       setSubcategoryId('')
     }
   }, [type])
 
+  const didMountCat = useRef(false)
   useEffect(() => {
+    if (!didMountCat.current) { didMountCat.current = true; return }
     setSubcategoryId('')
   }, [categoryId])
 
