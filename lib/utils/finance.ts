@@ -43,6 +43,18 @@ export function getMonthPeriod(
   return { start, end, label }
 }
 
+// Given today's date, returns the yearMonth anchor whose getMonthPeriod contains today.
+// When today falls before this calendar month's period start (e.g. start day is the 27th
+// and today is the 9th), the containing period belongs to the previous month's anchor.
+export function getPeriodAnchor(today: string, startDay: number): string {
+  const ym = today.slice(0, 7)
+  const { start } = getMonthPeriod(ym, startDay)
+  if (today >= start) return ym
+  const [y, m] = ym.split('-').map(Number)
+  const prev = new Date(y, m - 2, 1)
+  return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
+}
+
 export function datesBetween(start: string, end: string): string[] {
   const dates: string[] = []
   const cur = new Date(start + 'T00:00:00')

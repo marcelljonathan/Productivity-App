@@ -18,7 +18,7 @@ import WeeklyFinanceSummary from "@/components/finance/summary/WeeklyFinanceSumm
 import MonthlyFinanceSummary from "@/components/finance/summary/MonthlyFinanceSummary"
 import { Button } from "@/components/ui/button"
 import { getTodayLocalDate, formatLocalDate, addDays } from "@/lib/utils/timezone"
-import { getMonthPeriod } from "@/lib/utils/finance"
+import { getMonthPeriod, getPeriodAnchor } from "@/lib/utils/finance"
 
 type ViewMode = 'list' | 'daily' | 'weekly' | 'monthly'
 
@@ -56,9 +56,13 @@ export default function FinancePage() {
   const [date, setDate] = useState(getTodayLocalDate())
   const [yearMonth, setYearMonth] = useState(toYearMonth(getTodayLocalDate()))
   const [weekStart, setWeekStart] = useState(getWeekStart(getTodayLocalDate()))
+  const [monthOffset, setMonthOffset] = useState(0)
 
   const { startDay } = useMonthlyStartDay()
-  const monthPeriod = getMonthPeriod(yearMonth, startDay)
+  // Monthly summary anchors on the period containing today (derived, so it reacts to
+  // startDay loading from the profile), and navigates independently via monthOffset.
+  const periodAnchor = shiftMonth(getPeriodAnchor(getTodayLocalDate(), startDay), monthOffset)
+  const monthPeriod = getMonthPeriod(periodAnchor, startDay)
 
   const { accounts, balances, loading: accLoading, fetchAll: refetchAccounts } = useFinanceAccounts()
   const { accountTypes } = useFinanceAccountTypes()
@@ -200,11 +204,11 @@ export default function FinancePage() {
       {viewMode === 'monthly' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => setYearMonth(ym => shiftMonth(ym, -1))}>
+            <Button variant="ghost" size="icon" onClick={() => setMonthOffset(o => o - 1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <p className="text-sm font-medium">{monthPeriod.label}</p>
-            <Button variant="ghost" size="icon" onClick={() => setYearMonth(ym => shiftMonth(ym, 1))}>
+            <Button variant="ghost" size="icon" onClick={() => setMonthOffset(o => o + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
