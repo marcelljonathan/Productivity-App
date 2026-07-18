@@ -118,19 +118,19 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
           <div key={cur} className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground">{cur}</h3>
             <div className="grid grid-cols-3 gap-2">
-              <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
+              <div className="border border-gray-400 rounded-lg p-3 text-center">
                 <p className="text-lg font-bold text-green-600 dark:text-green-400">
                   {visible ? formatCurrency(totals[cur].income, cur) : MASK}
                 </p>
                 <p className="text-xs text-muted-foreground">Income</p>
               </div>
-              <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
+              <div className="border border-gray-400 rounded-lg p-3 text-center">
                 <p className="text-lg font-bold text-red-600 dark:text-red-400">
                   {visible ? formatCurrency(totals[cur].expense, cur) : MASK}
                 </p>
                 <p className="text-xs text-muted-foreground">Expense</p>
               </div>
-              <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
+              <div className="border border-gray-400 rounded-lg p-3 text-center">
                 <p className={`text-lg font-bold ${netIncome >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {visible ? `${netIncome >= 0 ? '+' : '−'}${formatCurrency(Math.abs(netIncome), cur)}` : MASK}
                 </p>
@@ -143,7 +143,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
                 <button
                   type="button"
                   onClick={() => setCustomExpanded(v => !v)}
-                  className="border border-gray-300 dark:border-border rounded-lg p-3 text-center hover:bg-muted/40 transition-colors"
+                  className="border border-gray-400 rounded-lg p-3 text-center hover:bg-muted/40 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <p className={`text-lg font-bold ${customNet >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -153,7 +153,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
                   </div>
                   <p className="text-xs text-muted-foreground">Custom</p>
                 </button>
-                <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
+                <div className="border border-gray-400 rounded-lg p-3 text-center">
                   <p className={`text-lg font-bold ${allNet >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {visible ? `${allNet >= 0 ? '+' : '−'}${formatCurrency(Math.abs(allNet), cur)}` : MASK}
                   </p>
@@ -163,7 +163,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
             )}
 
             {hasCustom && customExpanded && (
-              <div className="border border-gray-300 dark:border-border rounded-lg p-3 space-y-2">
+              <div className="border border-gray-400 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground">Custom Breakdown</p>
                 {Object.entries(customByType).map(([typeId, amounts]) => {
                   const typeName = transactionTypes.find(t => t.id === typeId)?.name ?? typeId
@@ -185,11 +185,11 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
       })}
 
       <div className="grid grid-cols-2 gap-2">
-        <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
+        <div className="border border-gray-400 rounded-lg p-3 text-center">
           <p className="text-2xl font-semibold">{activeDays}</p>
           <p className="text-xs text-muted-foreground">Active days</p>
         </div>
-        <div className="border border-gray-300 dark:border-border rounded-lg p-3 text-center">
+        <div className="border border-gray-400 rounded-lg p-3 text-center">
           <p className="text-2xl font-semibold">{transactions.length}</p>
           <p className="text-xs text-muted-foreground">Transactions</p>
         </div>
@@ -221,7 +221,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
               const hasSubs = catSubs.some(s => subTotals[s.id] && (subTotals[s.id].IDR > 0 || subTotals[s.id].USD > 0))
 
               return (
-                <div key={category!.id} className="border border-gray-300 dark:border-border rounded-lg overflow-hidden">
+                <div key={category!.id} className="border border-gray-400 rounded-lg overflow-hidden">
                   <button
                     type="button"
                     onClick={() => hasSubs ? setExpandedCatId(isExpanded ? null : category!.id) : undefined}

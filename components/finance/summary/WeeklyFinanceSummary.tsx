@@ -68,7 +68,7 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, on
           const net = weekTotals[cur].income - weekTotals[cur].expense
           if (weekTotals[cur].income === 0 && weekTotals[cur].expense === 0) return null
           return (
-            <div key={cur} className="border border-gray-300 dark:border-border rounded-lg p-3 space-y-1">
+            <div key={cur} className="border border-gray-400 rounded-lg p-3 space-y-1">
               <p className="text-xs text-muted-foreground font-medium">{cur}</p>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground">Income</span>

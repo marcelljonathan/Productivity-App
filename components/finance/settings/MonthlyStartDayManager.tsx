@@ -43,7 +43,7 @@ export default function MonthlyStartDayManager() {
               max={28}
               value={input}
               onChange={e => setInput(e.target.value)}
-              className="w-16 text-sm border border-gray-300 dark:border-border rounded px-2 py-1 bg-background"
+              className="w-16 text-sm border border-gray-400 rounded px-2 py-1 bg-background"
               autoFocus
             />
             <button type="submit" className="text-xs text-primary underline">Save</button>

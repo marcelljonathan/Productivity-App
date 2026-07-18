@@ -82,7 +82,7 @@ export default function DailyFinanceSummary({ yearMonth, txByDate, accounts, onD
               onClick={() => onDayClick(dateStr)}
               className={`
                 rounded-lg flex flex-col items-center justify-center gap-0.5 py-2
-                border border-gray-300 dark:border-gray-700
+                border border-gray-400
                 transition-all hover:ring-2 hover:ring-blue-400
                 ${dayCellColor(txs, accounts, isFuture)}
                 ${isToday ? 'ring-2 ring-blue-500' : ''}

@@ -107,7 +107,7 @@ export default function FinanceSummaryBar({ accounts, balances, accountTypes, tr
       {view === 'summary' && (
         <div className="grid grid-cols-2 gap-3">
           {boxes.map(({ label, value, color }) => (
-            <div key={label} className="border border-gray-300 dark:border-border rounded-lg px-4 py-3 space-y-1">
+            <div key={label} className="border border-gray-400 rounded-lg px-4 py-3 space-y-1">
               <p className="text-xs text-muted-foreground">{label}</p>
               {visible ? (
                 <p className={`text-base font-bold ${color}`}>
@@ -132,7 +132,7 @@ export default function FinanceSummaryBar({ accounts, balances, accountTypes, tr
               {accounts.filter(a => a.currency === currency).map(acc => {
                 const typeName = accountTypes.find(t => t.id === acc.account_type_id)?.name
                 return (
-                  <div key={acc.id} className="border border-gray-300 dark:border-border rounded-lg px-4 py-3 space-y-1">
+                  <div key={acc.id} className="border border-gray-400 rounded-lg px-4 py-3 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium truncate">{acc.name}</span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${CURRENCY_BADGE[acc.currency]}`}>
@@ -155,7 +155,7 @@ export default function FinanceSummaryBar({ accounts, balances, accountTypes, tr
               {accounts.filter(a => a.currency === currency).map(acc => {
                 const typeName = accountTypes.find(t => t.id === acc.account_type_id)?.name
                 return (
-                  <div key={acc.id} className="flex-shrink-0 border border-gray-300 dark:border-border rounded-lg px-4 py-3 min-w-[160px] space-y-1">
+                  <div key={acc.id} className="flex-shrink-0 border border-gray-400 rounded-lg px-4 py-3 min-w-[160px] space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium truncate">{acc.name}</span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${CURRENCY_BADGE[acc.currency]}`}>

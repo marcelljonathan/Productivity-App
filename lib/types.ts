@@ -1,5 +1,20 @@
 export type TaskStatus = 'pending' | 'partial' | 'done' | 'failed' | 'moved' | 'cancelled'
 
+// Custom pages (user-created rich-text tabs)
+export type CustomPage = {
+  id: string
+  user_id: string
+  title: string
+  icon: string | null
+  position: number
+  content: Record<string, unknown> | null // TipTap document JSON
+  created_at: string
+  updated_at: string
+}
+
+// Lightweight shape used by the nav list (no content payload)
+export type CustomPageMeta = Pick<CustomPage, 'id' | 'title' | 'icon' | 'position'>
+
 // Finance
 export type Currency = 'IDR' | 'USD'
 export type TransactionType = 'income' | 'expense' | 'transfer' | 'custom'

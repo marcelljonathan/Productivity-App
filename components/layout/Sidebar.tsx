@@ -4,9 +4,10 @@ import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useState } from "react"
-import { Menu, ListTodo, LogOut, ChevronLeft, Settings, Wallet } from "lucide-react"
+import { Menu, ListTodo, LogOut, ChevronLeft, Settings, Wallet, FileText, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProfileContext } from "@/components/providers/ProfileProvider"
+import { usePagesContext } from "@/components/providers/PagesProvider"
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
@@ -14,6 +15,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const supabase = createClient()
   const { profile } = useProfileContext()
+  const { pages, createPage } = usePagesContext()
 
   const title = profile.display_name ? `${profile.display_name}'s Domain` : 'Productivity'
 
@@ -21,6 +23,11 @@ export default function Sidebar() {
     await supabase.auth.signOut()
     router.push("/login")
     router.refresh()
+  }
+
+  async function handleCreatePage() {
+    const page = await createPage()
+    if (page) router.push(`/pages/${page.id}`)
   }
 
   return (
@@ -41,7 +48,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 p-2 space-y-1">
+      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         <Link
           href="/"
           title="Task List"
@@ -64,6 +71,30 @@ export default function Sidebar() {
           <Wallet size={18} className="shrink-0" />
           {!collapsed && "Finance"}
         </Link>
+
+        {pages.map(page => (
+          <Link
+            key={page.id}
+            href={`/pages/${page.id}`}
+            title={page.title}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-muted transition-colors",
+              pathname === `/pages/${page.id}` ? "bg-muted font-medium" : "text-muted-foreground"
+            )}
+          >
+            <FileText size={18} className="shrink-0" />
+            {!collapsed && <span className="truncate">{page.title}</span>}
+          </Link>
+        ))}
+
+        <button
+          onClick={handleCreatePage}
+          title="New page"
+          className="flex items-center gap-3 px-3 py-2 rounded text-sm w-full hover:bg-muted text-muted-foreground transition-colors"
+        >
+          <Plus size={18} className="shrink-0" />
+          {!collapsed && "New page"}
+        </button>
       </nav>
 
       <div className="p-2 border-t space-y-1">
