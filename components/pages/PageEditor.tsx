@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PendingCellMarks, isCellMarkActive, cellTextStyleAttr } from "@/lib/tiptap/pendingCellMarks"
+import { TableCellFormat, type CellFormat } from "@/lib/tiptap/tableCellFormat"
 
 const FONTS: { label: string; value: string }[] = [
   { label: "Default", value: "" },
@@ -54,6 +55,10 @@ export default function PageEditor({ pageId, initialContent }: Props) {
   const sizeBoxRef = useRef<HTMLDivElement>(null)
   const [colorOpen, setColorOpen] = useState(false)
   const colorBoxRef = useRef<HTMLDivElement>(null)
+  const [fmtKind, setFmtKind] = useState<CellFormat["kind"]>("number")
+  const [fmtCurrency, setFmtCurrency] = useState<"IDR" | "USD">("IDR")
+  const [fmtDecimals, setFmtDecimals] = useState(2)
+  const [fmtThousands, setFmtThousands] = useState(true)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const save = useCallback((json: Record<string, unknown>) => {
@@ -82,6 +87,7 @@ export default function PageEditor({ pageId, initialContent }: Props) {
       TableHeader,
       TableCell,
       PendingCellMarks,
+      TableCellFormat,
     ],
     content: (initialContent as Content) ?? "",
     onUpdate: ({ editor }) => save(editor.getJSON() as Record<string, unknown>),
@@ -145,6 +151,15 @@ export default function PageEditor({ pageId, initialContent }: Props) {
   }
   function clearColor() {
     editor?.chain().focus().applyCellMark("textStyle", { color: null }).run()
+  }
+
+  function applyCellFormat() {
+    editor?.chain().focus().setCellFormat({
+      kind: fmtKind,
+      currency: fmtCurrency,
+      thousands: fmtThousands,
+      decimals: fmtDecimals,
+    }).run()
   }
 
   // Apply the typed size to the current selection (cell-aware)
@@ -314,18 +329,69 @@ export default function PageEditor({ pageId, initialContent }: Props) {
             Table options
           </button>
           {showTableOptions && (
-            <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-muted/30 px-2 py-1.5 text-xs">
-              <MiniBtn onClick={() => editor.chain().focus().addColumnBefore().run()}>+ Col left</MiniBtn>
-              <MiniBtn onClick={() => editor.chain().focus().addColumnAfter().run()}>+ Col right</MiniBtn>
-              <MiniBtn onClick={() => editor.chain().focus().deleteColumn().run()}>− Col</MiniBtn>
-              <Divider />
-              <MiniBtn onClick={() => editor.chain().focus().addRowBefore().run()}>+ Row above</MiniBtn>
-              <MiniBtn onClick={() => editor.chain().focus().addRowAfter().run()}>+ Row below</MiniBtn>
-              <MiniBtn onClick={() => editor.chain().focus().deleteRow().run()}>− Row</MiniBtn>
-              <Divider />
-              <MiniBtn onClick={() => editor.chain().focus().toggleHeaderRow().run()}>Header row</MiniBtn>
-              <MiniBtn onClick={() => editor.chain().focus().mergeOrSplit().run()}>Merge/Split</MiniBtn>
-              <MiniBtn onClick={() => editor.chain().focus().deleteTable().run()} className="text-red-600">Delete table</MiniBtn>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-muted/30 px-2 py-1.5 text-xs">
+                <MiniBtn onClick={() => editor.chain().focus().addColumnBefore().run()}>+ Col left</MiniBtn>
+                <MiniBtn onClick={() => editor.chain().focus().addColumnAfter().run()}>+ Col right</MiniBtn>
+                <MiniBtn onClick={() => editor.chain().focus().deleteColumn().run()}>− Col</MiniBtn>
+                <Divider />
+                <MiniBtn onClick={() => editor.chain().focus().addRowBefore().run()}>+ Row above</MiniBtn>
+                <MiniBtn onClick={() => editor.chain().focus().addRowAfter().run()}>+ Row below</MiniBtn>
+                <MiniBtn onClick={() => editor.chain().focus().deleteRow().run()}>− Row</MiniBtn>
+                <Divider />
+                <MiniBtn onClick={() => editor.chain().focus().toggleHeaderRow().run()}>Header row</MiniBtn>
+                <MiniBtn onClick={() => editor.chain().focus().mergeOrSplit().run()}>Merge/Split</MiniBtn>
+                <MiniBtn onClick={() => editor.chain().focus().deleteTable().run()} className="text-red-600">Delete table</MiniBtn>
+              </div>
+
+              {/* Cell number/currency/percent format for the selected cells */}
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-2 py-1.5 text-xs">
+                <span className="text-muted-foreground">Cell format:</span>
+                <select
+                  value={fmtKind}
+                  onChange={e => setFmtKind(e.target.value as CellFormat["kind"])}
+                  className="h-6 rounded border bg-background px-1 text-xs"
+                >
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                  <option value="currency">Currency</option>
+                  <option value="percent">Percent</option>
+                </select>
+                {fmtKind === "currency" && (
+                  <select
+                    value={fmtCurrency}
+                    onChange={e => setFmtCurrency(e.target.value as "IDR" | "USD")}
+                    className="h-6 rounded border bg-background px-1 text-xs"
+                  >
+                    <option value="IDR">IDR (Rp)</option>
+                    <option value="USD">USD ($)</option>
+                  </select>
+                )}
+                {fmtKind !== "text" && (
+                  <>
+                    <label className="flex items-center gap-1">
+                      Decimals
+                      <input
+                        type="number"
+                        min={0}
+                        max={6}
+                        value={fmtDecimals}
+                        onChange={e => setFmtDecimals(Math.min(6, Math.max(0, parseInt(e.target.value) || 0)))}
+                        className="h-6 w-12 rounded border bg-background px-1 text-xs"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={fmtThousands}
+                        onChange={e => setFmtThousands(e.target.checked)}
+                      />
+                      Thousands (,)
+                    </label>
+                  </>
+                )}
+                <MiniBtn onClick={applyCellFormat}>Apply</MiniBtn>
+              </div>
             </div>
           )}
         </div>
