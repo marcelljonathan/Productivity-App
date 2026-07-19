@@ -31,7 +31,7 @@ export default function AccountBar({ accounts, balances, accountTypes, loading }
       {accounts.map(acc => (
         <div
           key={acc.id}
-          className="flex-shrink-0 border border-gray-400 rounded-lg px-4 py-3 min-w-[160px] space-y-1"
+          className="shrink-0 border border-gray-400 rounded-lg px-4 py-3 min-w-40 space-y-1"
         >
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium truncate">{acc.name}</span>

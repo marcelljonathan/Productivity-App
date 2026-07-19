@@ -4,12 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useEditor, EditorContent, useEditorState } from "@tiptap/react"
 import type { Content } from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
-import { TextStyle, Color, FontFamily } from "@tiptap/extension-text-style"
+import { TextStyle, Color, FontFamily, FontSize } from "@tiptap/extension-text-style"
 import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table"
 import { createClient } from "@/lib/supabase/client"
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2,
-  List, ListOrdered, Table as TableIcon, X,
+  List, ListOrdered, Table as TableIcon, X, ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +20,17 @@ const FONTS: { label: string; value: string }[] = [
   { label: "Mono", value: "ui-monospace, SFMono-Regular, Menlo, monospace" },
 ]
 
+const SIZES: { label: string; value: string }[] = [
+  { label: "Size", value: "" },
+  { label: "12", value: "12px" },
+  { label: "14", value: "14px" },
+  { label: "16", value: "16px" },
+  { label: "18", value: "18px" },
+  { label: "20", value: "20px" },
+  { label: "24", value: "24px" },
+  { label: "30", value: "30px" },
+]
+
 type Props = {
   pageId: string
   initialContent: Record<string, unknown> | null
@@ -28,6 +39,11 @@ type Props = {
 export default function PageEditor({ pageId, initialContent }: Props) {
   const [status, setStatus] = useState<"saved" | "saving">("saved")
   const [showTableOptions, setShowTableOptions] = useState(false)
+  const [sizeDraft, setSizeDraft] = useState("")
+  const [sizeOpen, setSizeOpen] = useState(false)
+  const sizeFocused = useRef(false)
+  const savedSel = useRef<{ from: number; to: number } | null>(null)
+  const sizeBoxRef = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const save = useCallback((json: Record<string, unknown>) => {
@@ -49,6 +65,7 @@ export default function PageEditor({ pageId, initialContent }: Props) {
       TextStyle,
       Color,
       FontFamily,
+      FontSize,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -73,11 +90,53 @@ export default function PageEditor({ pageId, initialContent }: Props) {
         h1: e?.isActive("heading", { level: 1 }) ?? false,
         h2: e?.isActive("heading", { level: 2 }) ?? false,
         fontFamily: (e?.getAttributes("textStyle").fontFamily as string) ?? "",
+        fontSize: (e?.getAttributes("textStyle").fontSize as string) ?? "",
         color: (e?.getAttributes("textStyle").color as string) ?? "",
         inTable: e?.isActive("table") ?? false,
       }
     },
   })
+
+  // Keep the size box showing the current selection's size, unless the user is typing in it
+  useEffect(() => {
+    if (!sizeFocused.current) {
+      setSizeDraft(state?.fontSize ? state.fontSize.replace("px", "") : "")
+    }
+  }, [state?.fontSize])
+
+  // Close the size preset dropdown when clicking anywhere outside it
+  useEffect(() => {
+    if (!sizeOpen) return
+    function onDocMouseDown(e: MouseEvent) {
+      if (sizeBoxRef.current && !sizeBoxRef.current.contains(e.target as Node)) setSizeOpen(false)
+    }
+    document.addEventListener("mousedown", onDocMouseDown)
+    return () => document.removeEventListener("mousedown", onDocMouseDown)
+  }, [sizeOpen])
+
+  // Apply the typed size to the selection we had when the box was focused
+  function applySize() {
+    if (!editor) return
+    const chain = editor.chain().focus()
+    if (savedSel.current) chain.setTextSelection(savedSel.current)
+    const n = parseInt(sizeDraft, 10)
+    if (sizeDraft.trim() === "") chain.unsetFontSize().run()
+    else if (!isNaN(n) && n > 0) chain.setFontSize(`${n}px`).run()
+    else chain.run()
+  }
+
+  // Apply a preset picked from the dropdown (keeps the saved selection)
+  function pickSize(num: string) {
+    if (!editor) return
+    const n = parseInt(num, 10)
+    const chain = editor.chain().focus()
+    if (savedSel.current) chain.setTextSelection(savedSel.current)
+    if (!isNaN(n) && n > 0) chain.setFontSize(`${n}px`).run()
+    else chain.run()
+    setSizeDraft(num)
+    setSizeOpen(false)
+    sizeFocused.current = false
+  }
 
   if (!editor) return <p className="text-sm text-muted-foreground">Loading editor…</p>
 
@@ -109,6 +168,52 @@ export default function PageEditor({ pageId, initialContent }: Props) {
         >
           {FONTS.map(f => <option key={f.label} value={f.value}>{f.label}</option>)}
         </select>
+
+        {/* Font size — type a number, or open presets with the chevron */}
+        <div className="relative" ref={sizeBoxRef}>
+          <div className="flex h-7 items-center rounded border bg-background">
+            <input
+              value={sizeDraft}
+              inputMode="numeric"
+              placeholder="Size"
+              title="Font size (type a number)"
+              onChange={e => setSizeDraft(e.target.value.replace(/[^0-9]/g, ""))}
+              onFocus={() => {
+                sizeFocused.current = true
+                savedSel.current = { from: editor.state.selection.from, to: editor.state.selection.to }
+              }}
+              onBlur={() => { sizeFocused.current = false; applySize() }}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur() } }}
+              className="h-full w-10 bg-transparent px-1.5 text-xs outline-none"
+            />
+            <button
+              type="button"
+              title="Size presets"
+              onMouseDown={e => {
+                e.preventDefault()
+                savedSel.current = { from: editor.state.selection.from, to: editor.state.selection.to }
+                setSizeOpen(o => !o)
+              }}
+              className="flex h-full items-center border-l px-1 text-muted-foreground hover:text-foreground"
+            >
+              <ChevronDown size={12} />
+            </button>
+          </div>
+          {sizeOpen && (
+            <div className="absolute left-0 top-full z-30 mt-1 max-h-56 w-16 overflow-y-auto rounded-md border bg-background py-1 shadow-md">
+              {SIZES.filter(s => s.value).map(s => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); pickSize(s.label) }}
+                  className="block w-full px-2 py-1 text-left text-xs hover:bg-muted"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Text color */}
         <label className="flex items-center gap-1 rounded border px-1.5 h-7 cursor-pointer" title="Text color">

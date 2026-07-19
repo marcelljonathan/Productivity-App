@@ -78,8 +78,8 @@ export default function TransactionCard({ transaction: tx, accounts, categories,
           onCancel={() => setConfirming(false)}
         />
       )}
-      <div className={`flex items-start gap-3 border border-gray-400 rounded-lg px-4 py-3 transition-colors ${isEditing ? 'bg-muted/40 !border-foreground/30' : 'hover:bg-muted/30'}`}>
-        <div className={`mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ${TYPE_DOT[colorKey]}`} />
+      <div className={`flex items-start gap-3 border border-gray-400 rounded-lg px-4 py-3 transition-colors ${isEditing ? 'bg-muted/40 border-foreground/30!' : 'hover:bg-muted/30'}`}>
+        <div className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${TYPE_DOT[colorKey]}`} />
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">
@@ -106,7 +106,7 @@ export default function TransactionCard({ transaction: tx, accounts, categories,
           </div>
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <div className="text-right mr-2">
             {visible ? (
               <>
