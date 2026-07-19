@@ -6,12 +6,15 @@ import type { Content } from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
 import { TextStyle, Color, FontFamily, FontSize } from "@tiptap/extension-text-style"
 import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table"
+import TextAlign from "@tiptap/extension-text-align"
 import { createClient } from "@/lib/supabase/client"
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2,
   List, ListOrdered, Table as TableIcon, X, ChevronDown,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PendingCellMarks, isCellMarkActive, cellTextStyleAttr } from "@/lib/tiptap/pendingCellMarks"
 
 const FONTS: { label: string; value: string }[] = [
   { label: "Default", value: "" },
@@ -31,6 +34,12 @@ const SIZES: { label: string; value: string }[] = [
   { label: "30", value: "30px" },
 ]
 
+// Frequently used colors shown as swatches (custom RGB still available via the picker)
+const COLORS: string[] = [
+  "#000000", "#6b7280", "#ef4444", "#f97316", "#eab308",
+  "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899",
+]
+
 type Props = {
   pageId: string
   initialContent: Record<string, unknown> | null
@@ -42,8 +51,9 @@ export default function PageEditor({ pageId, initialContent }: Props) {
   const [sizeDraft, setSizeDraft] = useState("")
   const [sizeOpen, setSizeOpen] = useState(false)
   const sizeFocused = useRef(false)
-  const savedSel = useRef<{ from: number; to: number } | null>(null)
   const sizeBoxRef = useRef<HTMLDivElement>(null)
+  const [colorOpen, setColorOpen] = useState(false)
+  const colorBoxRef = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const save = useCallback((json: Record<string, unknown>) => {
@@ -66,10 +76,12 @@ export default function PageEditor({ pageId, initialContent }: Props) {
       Color,
       FontFamily,
       FontSize,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
+      PendingCellMarks,
     ],
     content: (initialContent as Content) ?? "",
     onUpdate: ({ editor }) => save(editor.getJSON() as Record<string, unknown>),
@@ -82,16 +94,20 @@ export default function PageEditor({ pageId, initialContent }: Props) {
     selector: (ctx) => {
       const e = ctx.editor
       return {
-        bold: e?.isActive("bold") ?? false,
-        italic: e?.isActive("italic") ?? false,
-        underline: e?.isActive("underline") ?? false,
+        bold: e ? isCellMarkActive(e, "bold") : false,
+        italic: e ? isCellMarkActive(e, "italic") : false,
+        underline: e ? isCellMarkActive(e, "underline") : false,
         bullet: e?.isActive("bulletList") ?? false,
         ordered: e?.isActive("orderedList") ?? false,
         h1: e?.isActive("heading", { level: 1 }) ?? false,
         h2: e?.isActive("heading", { level: 2 }) ?? false,
-        fontFamily: (e?.getAttributes("textStyle").fontFamily as string) ?? "",
-        fontSize: (e?.getAttributes("textStyle").fontSize as string) ?? "",
-        color: (e?.getAttributes("textStyle").color as string) ?? "",
+        alignLeft: e?.isActive({ textAlign: "left" }) ?? false,
+        alignCenter: e?.isActive({ textAlign: "center" }) ?? false,
+        alignRight: e?.isActive({ textAlign: "right" }) ?? false,
+        alignJustify: e?.isActive({ textAlign: "justify" }) ?? false,
+        fontFamily: e ? cellTextStyleAttr(e, "fontFamily") : "",
+        fontSize: e ? cellTextStyleAttr(e, "fontSize") : "",
+        color: e ? cellTextStyleAttr(e, "color") : "",
         inTable: e?.isActive("table") ?? false,
       }
     },
@@ -114,25 +130,36 @@ export default function PageEditor({ pageId, initialContent }: Props) {
     return () => document.removeEventListener("mousedown", onDocMouseDown)
   }, [sizeOpen])
 
-  // Apply the typed size to the selection we had when the box was focused
-  function applySize() {
-    if (!editor) return
-    const chain = editor.chain().focus()
-    if (savedSel.current) chain.setTextSelection(savedSel.current)
-    const n = parseInt(sizeDraft, 10)
-    if (sizeDraft.trim() === "") chain.unsetFontSize().run()
-    else if (!isNaN(n) && n > 0) chain.setFontSize(`${n}px`).run()
-    else chain.run()
+  // Close the color dropdown when clicking outside it
+  useEffect(() => {
+    if (!colorOpen) return
+    function onDocMouseDown(e: MouseEvent) {
+      if (colorBoxRef.current && !colorBoxRef.current.contains(e.target as Node)) setColorOpen(false)
+    }
+    document.addEventListener("mousedown", onDocMouseDown)
+    return () => document.removeEventListener("mousedown", onDocMouseDown)
+  }, [colorOpen])
+
+  function applyColor(hex: string) {
+    editor?.chain().focus().applyCellMark("textStyle", { color: hex }).run()
+  }
+  function clearColor() {
+    editor?.chain().focus().applyCellMark("textStyle", { color: null }).run()
   }
 
-  // Apply a preset picked from the dropdown (keeps the saved selection)
+  // Apply the typed size to the current selection (cell-aware)
+  function applySize() {
+    if (!editor) return
+    const n = parseInt(sizeDraft, 10)
+    if (sizeDraft.trim() === "") editor.chain().focus().applyCellMark("textStyle", { fontSize: null }).run()
+    else if (!isNaN(n) && n > 0) editor.chain().focus().applyCellMark("textStyle", { fontSize: `${n}px` }).run()
+  }
+
+  // Apply a preset picked from the dropdown
   function pickSize(num: string) {
     if (!editor) return
     const n = parseInt(num, 10)
-    const chain = editor.chain().focus()
-    if (savedSel.current) chain.setTextSelection(savedSel.current)
-    if (!isNaN(n) && n > 0) chain.setFontSize(`${n}px`).run()
-    else chain.run()
+    if (!isNaN(n) && n > 0) editor.chain().focus().applyCellMark("textStyle", { fontSize: `${n}px` }).run()
     setSizeDraft(num)
     setSizeOpen(false)
     sizeFocused.current = false
@@ -144,9 +171,9 @@ export default function PageEditor({ pageId, initialContent }: Props) {
     <div className="space-y-2">
       {/* Toolbar */}
       <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-lg border bg-background/95 backdrop-blur px-2 py-1.5">
-        <TbBtn active={state?.bold} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold"><Bold size={15} /></TbBtn>
-        <TbBtn active={state?.italic} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic"><Italic size={15} /></TbBtn>
-        <TbBtn active={state?.underline} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></TbBtn>
+        <TbBtn active={state?.bold} onClick={() => editor.chain().focus().applyCellMark("bold").run()} title="Bold"><Bold size={15} /></TbBtn>
+        <TbBtn active={state?.italic} onClick={() => editor.chain().focus().applyCellMark("italic").run()} title="Italic"><Italic size={15} /></TbBtn>
+        <TbBtn active={state?.underline} onClick={() => editor.chain().focus().applyCellMark("underline").run()} title="Underline"><UnderlineIcon size={15} /></TbBtn>
 
         <Divider />
         <TbBtn active={state?.h1} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Heading 1"><Heading1 size={15} /></TbBtn>
@@ -155,13 +182,18 @@ export default function PageEditor({ pageId, initialContent }: Props) {
         <TbBtn active={state?.ordered} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered list"><ListOrdered size={15} /></TbBtn>
 
         <Divider />
+        <TbBtn active={state?.alignLeft} onClick={() => editor.chain().focus().setTextAlign("left").run()} title="Align left"><AlignLeft size={15} /></TbBtn>
+        <TbBtn active={state?.alignCenter} onClick={() => editor.chain().focus().setTextAlign("center").run()} title="Align center"><AlignCenter size={15} /></TbBtn>
+        <TbBtn active={state?.alignRight} onClick={() => editor.chain().focus().setTextAlign("right").run()} title="Align right"><AlignRight size={15} /></TbBtn>
+        <TbBtn active={state?.alignJustify} onClick={() => editor.chain().focus().setTextAlign("justify").run()} title="Justify"><AlignJustify size={15} /></TbBtn>
+
+        <Divider />
         {/* Font family */}
         <select
           value={state?.fontFamily ?? ""}
           onChange={e => {
             const f = e.target.value
-            if (f) editor.chain().focus().setFontFamily(f).run()
-            else editor.chain().focus().unsetFontFamily().run()
+            editor.chain().focus().applyCellMark("textStyle", { fontFamily: f || null }).run()
           }}
           className="h-7 rounded border bg-background px-1.5 text-xs"
           title="Font"
@@ -178,10 +210,7 @@ export default function PageEditor({ pageId, initialContent }: Props) {
               placeholder="Size"
               title="Font size (type a number)"
               onChange={e => setSizeDraft(e.target.value.replace(/[^0-9]/g, ""))}
-              onFocus={() => {
-                sizeFocused.current = true
-                savedSel.current = { from: editor.state.selection.from, to: editor.state.selection.to }
-              }}
+              onFocus={() => { sizeFocused.current = true }}
               onBlur={() => { sizeFocused.current = false; applySize() }}
               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur() } }}
               className="h-full w-10 bg-transparent px-1.5 text-xs outline-none"
@@ -189,11 +218,7 @@ export default function PageEditor({ pageId, initialContent }: Props) {
             <button
               type="button"
               title="Size presets"
-              onMouseDown={e => {
-                e.preventDefault()
-                savedSel.current = { from: editor.state.selection.from, to: editor.state.selection.to }
-                setSizeOpen(o => !o)
-              }}
+              onMouseDown={e => { e.preventDefault(); setSizeOpen(o => !o) }}
               className="flex h-full items-center border-l px-1 text-muted-foreground hover:text-foreground"
             >
               <ChevronDown size={12} />
@@ -215,19 +240,54 @@ export default function PageEditor({ pageId, initialContent }: Props) {
           )}
         </div>
 
-        {/* Text color */}
-        <label className="flex items-center gap-1 rounded border px-1.5 h-7 cursor-pointer" title="Text color">
-          <span className="text-xs" style={{ color: state?.color || undefined }}>A</span>
-          <input
-            type="color"
-            value={state?.color || "#000000"}
-            onChange={e => editor.chain().focus().setColor(e.target.value).run()}
-            className="h-4 w-4 cursor-pointer border-0 bg-transparent p-0"
-          />
-        </label>
-        {state?.color && (
-          <TbBtn onClick={() => editor.chain().focus().unsetColor().run()} title="Clear color"><X size={14} /></TbBtn>
-        )}
+        {/* Text color — presets + custom picker */}
+        <div className="relative" ref={colorBoxRef}>
+          <button
+            type="button"
+            title="Text color"
+            onMouseDown={e => { e.preventDefault(); setColorOpen(o => !o) }}
+            className="flex h-7 items-center gap-1 rounded border px-1.5"
+          >
+            <span className="text-xs font-semibold" style={{ color: state?.color || undefined }}>A</span>
+            <span className="h-2.5 w-2.5 rounded-sm border" style={{ background: state?.color || "transparent" }} />
+            <ChevronDown size={12} className="text-muted-foreground" />
+          </button>
+          {colorOpen && (
+            <div className="absolute left-0 top-full z-30 mt-1 w-40 rounded-md border bg-background p-2 shadow-md">
+              <div className="grid grid-cols-5 gap-1.5">
+                {COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    title={c}
+                    onMouseDown={e => { e.preventDefault(); applyColor(c); setColorOpen(false) }}
+                    className="h-5 w-5 rounded-sm border"
+                    style={{ background: c }}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t pt-2">
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer" title="Custom color">
+                  <span className="h-4 w-4 rounded-sm border" style={{ background: state?.color || "transparent" }} />
+                  Custom
+                  <input
+                    type="color"
+                    value={state?.color || "#000000"}
+                    onChange={e => applyColor(e.target.value)}
+                    className="h-5 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); clearColor(); setColorOpen(false) }}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X size={12} /> Clear
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <Divider />
         <TbBtn
@@ -284,6 +344,8 @@ function TbBtn({ active, onClick, title, children }: {
   return (
     <button
       type="button"
+      // Keep the editor's selection (incl. multi-cell selection) — don't let the button steal focus
+      onMouseDown={e => e.preventDefault()}
       onClick={onClick}
       title={title}
       className={cn(
@@ -302,6 +364,7 @@ function MiniBtn({ onClick, className, children }: {
   return (
     <button
       type="button"
+      onMouseDown={e => e.preventDefault()}
       onClick={onClick}
       className={cn("rounded border px-2 py-1 hover:bg-muted transition-colors", className)}
     >
