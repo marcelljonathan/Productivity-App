@@ -33,12 +33,12 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 h-screen border-r flex-col transition-all duration-200",
+        "sticky top-0 h-screen border-r border-gray-400 flex-col transition-all duration-200",
         "hidden md:flex",
         collapsed ? "w-16" : "w-56"
       )}
     >
-      <div className="flex items-center justify-between px-3 py-4 border-b">
+      <div className="flex items-center justify-between px-3 py-4 border-b border-gray-400">
         {!collapsed && <span className="font-semibold text-sm truncate">{title}</span>}
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -82,7 +82,9 @@ export default function Sidebar() {
               pathname === `/pages/${page.id}` ? "bg-muted font-medium" : "text-muted-foreground"
             )}
           >
-            <FileText size={18} className="shrink-0" />
+            {page.icon
+              ? <span className="w-4.5 shrink-0 text-center text-base leading-none">{page.icon}</span>
+              : <FileText size={18} className="shrink-0" />}
             {!collapsed && <span className="truncate">{page.title}</span>}
           </Link>
         ))}
@@ -97,7 +99,7 @@ export default function Sidebar() {
         </button>
       </nav>
 
-      <div className="p-2 border-t space-y-1">
+      <div className="p-2 border-t border-gray-400 space-y-1">
         <Link
           href="/settings"
           title="Settings"

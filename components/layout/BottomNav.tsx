@@ -45,7 +45,9 @@ export default function BottomNav() {
           href={`/pages/${page.id}`}
           className={cn(ITEM, pathname === `/pages/${page.id}` ? "text-foreground font-medium" : "text-muted-foreground")}
         >
-          <FileText size={20} />
+          {page.icon
+            ? <span className="text-lg leading-none">{page.icon}</span>
+            : <FileText size={20} />}
           <span className="truncate max-w-full">{page.title}</span>
         </Link>
       ))}

@@ -7,18 +7,32 @@ import { CustomPage } from "@/lib/types"
 import { usePagesContext } from "@/components/providers/PagesProvider"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import PageEditor from "@/components/pages/PageEditor"
-import { Trash2 } from "lucide-react"
+import IconPicker from "@/components/pages/IconPicker"
+import { Trash2, Maximize2, Minimize2 } from "lucide-react"
 
 export default function CustomPageRoute() {
   const params = useParams()
   const id = params.id as string
   const router = useRouter()
-  const { renamePage, deletePage } = usePagesContext()
+  const { renamePage, deletePage, setPageIcon } = usePagesContext()
 
   const [page, setPage] = useState<CustomPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState("")
   const [confirming, setConfirming] = useState(false)
+  const [fullWidth, setFullWidth] = useState(false)
+
+  useEffect(() => {
+    setFullWidth(localStorage.getItem("ruteen:page-full-width") === "1")
+  }, [])
+
+  function toggleWidth() {
+    setFullWidth(v => {
+      const next = !v
+      localStorage.setItem("ruteen:page-full-width", next ? "1" : "0")
+      return next
+    })
+  }
 
   const fetchPage = useCallback(async () => {
     setLoading(true)
@@ -45,11 +59,17 @@ export default function CustomPageRoute() {
     router.push('/')
   }
 
+  async function handleIconChange(icon: string | null) {
+    if (!page) return
+    await setPageIcon(page.id, icon)
+    setPage({ ...page, icon })
+  }
+
   if (loading) return <p className="text-sm text-muted-foreground">Loading...</p>
   if (!page) return <p className="text-sm text-muted-foreground">Page not found.</p>
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className={`space-y-4 ${fullWidth ? "" : "max-w-3xl mx-auto"}`}>
       {confirming && (
         <ConfirmDialog
           message="Delete this page? This cannot be undone."
@@ -59,6 +79,7 @@ export default function CustomPageRoute() {
       )}
 
       <div className="flex items-center gap-2">
+        <IconPicker value={page.icon} onChange={handleIconChange} />
         <input
           value={title}
           onChange={e => setTitle(e.target.value)}
@@ -66,6 +87,13 @@ export default function CustomPageRoute() {
           placeholder="Untitled"
           className="flex-1 text-2xl font-bold bg-transparent outline-none"
         />
+        <button
+          onClick={toggleWidth}
+          title={fullWidth ? "Use narrow width" : "Use full width"}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {fullWidth ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
         <button
           onClick={() => setConfirming(true)}
           title="Delete page"

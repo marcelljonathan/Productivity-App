@@ -170,7 +170,7 @@ export default function PageEditor({ pageId, initialContent }: Props) {
   return (
     <div className="space-y-2">
       {/* Toolbar */}
-      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-lg border bg-background/95 backdrop-blur px-2 py-1.5">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-lg border border-gray-400 bg-background/95 backdrop-blur px-2 py-1.5">
         <TbBtn active={state?.bold} onClick={() => editor.chain().focus().applyCellMark("bold").run()} title="Bold"><Bold size={15} /></TbBtn>
         <TbBtn active={state?.italic} onClick={() => editor.chain().focus().applyCellMark("italic").run()} title="Italic"><Italic size={15} /></TbBtn>
         <TbBtn active={state?.underline} onClick={() => editor.chain().focus().applyCellMark("underline").run()} title="Underline"><UnderlineIcon size={15} /></TbBtn>
@@ -331,7 +331,7 @@ export default function PageEditor({ pageId, initialContent }: Props) {
         </div>
       )}
 
-      <div className="rounded-lg border px-4 py-3">
+      <div className="rounded-lg border border-gray-400 px-4 py-3">
         <EditorContent editor={editor} />
       </div>
     </div>

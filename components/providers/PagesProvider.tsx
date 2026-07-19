@@ -11,6 +11,7 @@ type Ctx = {
   createPage: () => Promise<CustomPage | null>
   renamePage: (id: string, title: string) => Promise<void>
   deletePage: (id: string) => Promise<void>
+  setPageIcon: (id: string, icon: string | null) => Promise<void>
 }
 
 const PagesContext = createContext<Ctx>({
@@ -20,6 +21,7 @@ const PagesContext = createContext<Ctx>({
   createPage: async () => null,
   renamePage: async () => {},
   deletePage: async () => {},
+  setPageIcon: async () => {},
 })
 
 export const usePagesContext = () => useContext(PagesContext)

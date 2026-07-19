@@ -50,5 +50,13 @@ export function usePages() {
     await fetchPages()
   }, [fetchPages])
 
-  return { pages, loading, fetchPages, createPage, renamePage, deletePage }
+  const setPageIcon = useCallback(async (id: string, icon: string | null) => {
+    const supabase = createClient()
+    await supabase.from('custom_pages')
+      .update({ icon, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    await fetchPages()
+  }, [fetchPages])
+
+  return { pages, loading, fetchPages, createPage, renamePage, deletePage, setPageIcon }
 }
