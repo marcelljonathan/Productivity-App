@@ -23,13 +23,13 @@ export default function CustomPageRoute() {
   const [fullWidth, setFullWidth] = useState(false)
 
   useEffect(() => {
-    setFullWidth(localStorage.getItem("ruteen:page-full-width") === "1")
-  }, [])
+    setFullWidth(localStorage.getItem(`ruteen:page-full-width:${id}`) === "1")
+  }, [id])
 
   function toggleWidth() {
     setFullWidth(v => {
       const next = !v
-      localStorage.setItem("ruteen:page-full-width", next ? "1" : "0")
+      localStorage.setItem(`ruteen:page-full-width:${id}`, next ? "1" : "0")
       return next
     })
   }
