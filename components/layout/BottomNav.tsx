@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { ListTodo, Settings, LogOut, Wallet, FileText } from "lucide-react"
+import { ListTodo, Settings, LogOut, Wallet, FileText, CandlestickChart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePagesContext } from "@/components/providers/PagesProvider"
 
@@ -47,6 +47,8 @@ export default function BottomNav() {
         >
           {page.icon
             ? <span className="text-lg leading-none">{page.icon}</span>
+            : page.type === "trades"
+            ? <CandlestickChart size={20} />
             : <FileText size={20} />}
           <span className="truncate max-w-full">{page.title}</span>
         </Link>

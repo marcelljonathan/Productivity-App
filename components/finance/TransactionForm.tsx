@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { FinanceAccount, FinanceCategory, FinanceSubcategory, FinanceTransaction, FinanceTransactionType, TransactionType } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -52,28 +52,44 @@ export default function TransactionForm({ accounts, categories, subcategories, t
   const filteredCategories = categories.filter(c => c.type === type as string)
   const filteredSubcategories = subcategories.filter(s => s.category_id === categoryId)
 
-  const didMountType = useRef(false)
-  useEffect(() => {
-    if (!didMountType.current) { didMountType.current = true; return }
-    if (type !== 'custom') {
+  // Would this combination be a cross-currency transfer (needs a separate "to amount")?
+  function isCross(t: TransactionType, fromId: string, toId: string) {
+    const from = accounts.find(a => a.id === fromId)
+    const to = accounts.find(a => a.id === toId)
+    return t === 'transfer' && !!from && !!to && from.currency !== to.currency
+  }
+
+  // Resetting dependent fields belongs in the change handlers, not effects: switching to a
+  // non-custom type clears the category/subcategory (they're type-specific), and leaving a
+  // cross-currency transfer clears the "to amount".
+  function changeType(next: TransactionType) {
+    setType(next)
+    if (next !== 'custom') {
       setCategoryId('')
       setSubcategoryId('')
     }
-  }, [type])
+    if (!isCross(next, accountId, toAccountId)) setToAmount('')
+  }
 
-  const didMountCat = useRef(false)
-  useEffect(() => {
-    if (!didMountCat.current) { didMountCat.current = true; return }
+  function changeFromAccount(id: string) {
+    setAccountId(id)
+    if (!isCross(type, id, toAccountId)) setToAmount('')
+  }
+
+  function changeToAccount(id: string) {
+    setToAccountId(id)
+    if (!isCross(type, accountId, id)) setToAmount('')
+  }
+
+  function changeCategory(id: string) {
+    setCategoryId(id)
     setSubcategoryId('')
-  }, [categoryId])
-
-  useEffect(() => {
-    if (!isCrossCurrency) setToAmount('')
-  }, [isCrossCurrency])
+  }
 
   function selectCustomType(id: string) {
     setType('custom')
     setCustomTypeId(id)
+    setToAmount('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -135,7 +151,7 @@ export default function TransactionForm({ accounts, categories, subcategories, t
           <button
             key={key}
             type="button"
-            onClick={() => setType(key)}
+            onClick={() => changeType(key)}
             className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
               type === key ? active : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
@@ -177,7 +193,7 @@ export default function TransactionForm({ accounts, categories, subcategories, t
           <Label className="text-xs">{type === 'transfer' ? 'From Account' : 'Account'}</Label>
           <select
             value={accountId}
-            onChange={e => setAccountId(e.target.value)}
+            onChange={e => changeFromAccount(e.target.value)}
             className="w-full border rounded-md px-3 py-1.5 text-sm bg-background"
             required
           >
@@ -193,7 +209,7 @@ export default function TransactionForm({ accounts, categories, subcategories, t
             <Label className="text-xs">To Account</Label>
             <select
               value={toAccountId}
-              onChange={e => setToAccountId(e.target.value)}
+              onChange={e => changeToAccount(e.target.value)}
               className="w-full border rounded-md px-3 py-1.5 text-sm bg-background"
               required
             >
@@ -305,7 +321,7 @@ export default function TransactionForm({ accounts, categories, subcategories, t
             <Label className="text-xs">Category</Label>
             <select
               value={categoryId}
-              onChange={e => setCategoryId(e.target.value)}
+              onChange={e => changeCategory(e.target.value)}
               className="w-full border rounded-md px-3 py-1.5 text-sm bg-background"
             >
               <option value="">No category</option>

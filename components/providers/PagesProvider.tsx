@@ -2,13 +2,13 @@
 
 import { createContext, useContext } from "react"
 import { usePages } from "@/hooks/usePages"
-import { CustomPage, CustomPageMeta } from "@/lib/types"
+import { CustomPage, CustomPageMeta, PageType } from "@/lib/types"
 
 type Ctx = {
   pages: CustomPageMeta[]
   loading: boolean
   fetchPages: () => Promise<void>
-  createPage: () => Promise<CustomPage | null>
+  createPage: (type?: PageType) => Promise<CustomPage | null>
   renamePage: (id: string, title: string) => Promise<void>
   deletePage: (id: string) => Promise<void>
   setPageIcon: (id: string, icon: string | null) => Promise<void>

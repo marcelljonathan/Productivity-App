@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { CustomPage, CustomPageMeta } from "@/lib/types"
+import { CustomPage, CustomPageMeta, PageType } from "@/lib/types"
 
 export function usePages() {
   const [pages, setPages] = useState<CustomPageMeta[]>([])
@@ -13,7 +13,7 @@ export function usePages() {
     const supabase = createClient()
     const { data } = await supabase
       .from('custom_pages')
-      .select('id, title, icon, position')
+      .select('id, title, icon, position, type')
       .order('position', { ascending: true })
       .order('created_at', { ascending: true })
     if (data) setPages(data as CustomPageMeta[])
@@ -22,14 +22,15 @@ export function usePages() {
 
   useEffect(() => { fetchPages() }, [fetchPages])
 
-  const createPage = useCallback(async (): Promise<CustomPage | null> => {
+  const createPage = useCallback(async (type: PageType = 'doc'): Promise<CustomPage | null> => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
     const nextPosition = pages.length > 0 ? Math.max(...pages.map(p => p.position)) + 1 : 0
+    const title = type === 'trades' ? 'Trades' : 'Untitled'
     const { data } = await supabase
       .from('custom_pages')
-      .insert({ user_id: user.id, title: 'Untitled', position: nextPosition })
+      .insert({ user_id: user.id, title, position: nextPosition, type })
       .select()
       .single()
     await fetchPages()

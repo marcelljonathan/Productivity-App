@@ -7,6 +7,7 @@ import { CustomPage } from "@/lib/types"
 import { usePagesContext } from "@/components/providers/PagesProvider"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import PageEditor from "@/components/pages/PageEditor"
+import TradesTracker from "@/components/trades/TradesTracker"
 import IconPicker from "@/components/pages/IconPicker"
 import { Trash2, Maximize2, Minimize2 } from "lucide-react"
 
@@ -68,8 +69,10 @@ export default function CustomPageRoute() {
   if (loading) return <p className="text-sm text-muted-foreground">Loading...</p>
   if (!page) return <p className="text-sm text-muted-foreground">Page not found.</p>
 
+  const isTrades = page.type === 'trades'
+
   return (
-    <div className={`space-y-4 ${fullWidth ? "" : "max-w-3xl mx-auto"}`}>
+    <div className={`space-y-4 ${isTrades ? "max-w-3xl mx-auto" : fullWidth ? "" : "max-w-3xl mx-auto"}`}>
       {confirming && (
         <ConfirmDialog
           message="Delete this page? This cannot be undone."
@@ -87,13 +90,15 @@ export default function CustomPageRoute() {
           placeholder="Untitled"
           className="flex-1 text-2xl font-bold bg-transparent outline-none"
         />
-        <button
-          onClick={toggleWidth}
-          title={fullWidth ? "Use narrow width" : "Use full width"}
-          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {fullWidth ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-        </button>
+        {!isTrades && (
+          <button
+            onClick={toggleWidth}
+            title={fullWidth ? "Use narrow width" : "Use full width"}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {fullWidth ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
+        )}
         <button
           onClick={() => setConfirming(true)}
           title="Delete page"
@@ -103,7 +108,9 @@ export default function CustomPageRoute() {
         </button>
       </div>
 
-      <PageEditor pageId={page.id} initialContent={page.content} />
+      {isTrades
+        ? <TradesTracker pageId={page.id} />
+        : <PageEditor pageId={page.id} initialContent={page.content} />}
     </div>
   )
 }

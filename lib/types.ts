@@ -1,19 +1,22 @@
 export type TaskStatus = 'pending' | 'partial' | 'done' | 'failed' | 'moved' | 'cancelled'
 
-// Custom pages (user-created rich-text tabs)
+// Custom pages (user-created tabs). A page is either a rich-text doc or a trades tracker.
+export type PageType = 'doc' | 'trades'
+
 export type CustomPage = {
   id: string
   user_id: string
   title: string
   icon: string | null
   position: number
-  content: Record<string, unknown> | null // TipTap document JSON
+  type: PageType
+  content: Record<string, unknown> | null // TipTap document JSON (doc pages only)
   created_at: string
   updated_at: string
 }
 
 // Lightweight shape used by the nav list (no content payload)
-export type CustomPageMeta = Pick<CustomPage, 'id' | 'title' | 'icon' | 'position'>
+export type CustomPageMeta = Pick<CustomPage, 'id' | 'title' | 'icon' | 'position' | 'type'>
 
 // Finance
 export type Currency = 'IDR' | 'USD'
@@ -76,6 +79,49 @@ export type FinanceTransaction = {
   transfer_fee: number | null
   date: string
   note: string | null
+  created_at: string
+}
+
+// Trades tracker (isolated from Finance; scoped per page)
+export type BrokerType = 'stock' | 'futures'
+
+// A broker is an "account". Types are fixed (stock/futures); no starting balance.
+export type TradeAccount = {
+  id: string
+  user_id: string
+  page_id: string
+  name: string
+  currency: Currency
+  broker_type: BrokerType
+  created_at: string
+}
+
+// One stock purchase. The portfolio merges lots of the same code by weighted average.
+export type TradeStockLot = {
+  id: string
+  user_id: string
+  page_id: string
+  account_id: string
+  stock_code: string
+  buy_date: string
+  buy_price: number
+  volume: number
+  fee: number
+  created_at: string
+}
+
+// One stock sale (partial allowed). Reduces the held position; realized P/L is
+// computed against the weighted-average buy price.
+export type TradeStockSell = {
+  id: string
+  user_id: string
+  page_id: string
+  account_id: string
+  stock_code: string
+  sell_date: string
+  sell_price: number
+  volume: number
+  fee: number
   created_at: string
 }
 
