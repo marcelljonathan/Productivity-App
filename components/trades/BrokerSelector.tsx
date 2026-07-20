@@ -14,7 +14,7 @@ type Props = {
   onAdd: (name: string, type: BrokerType, currency: Currency) => Promise<TradeAccount | null>
 }
 
-const TYPE_LABEL: Record<BrokerType, string> = { stock: 'Stock', futures: 'Futures' }
+const TYPE_LABEL: Record<BrokerType, string> = { stock: 'Stock', futures: 'CFD/Forex' }
 
 export default function BrokerSelector({ brokers, selectedId, onSelect, onAdd }: Props) {
   const [showAdd, setShowAdd] = useState(false)
@@ -84,7 +84,7 @@ export default function BrokerSelector({ brokers, selectedId, onSelect, onAdd }:
                 className="w-full border rounded-md px-3 py-1.5 text-sm bg-background"
               >
                 <option value="stock">Stock Broker</option>
-                <option value="futures">Futures Broker</option>
+                <option value="futures">CFD/Forex Broker</option>
               </select>
             </div>
             <div className="space-y-1">

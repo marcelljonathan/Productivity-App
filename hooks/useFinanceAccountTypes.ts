@@ -29,11 +29,17 @@ export function useFinanceAccountTypes() {
     await fetchAll()
   }
 
+  async function updateAccountType(id: string, name: string) {
+    const supabase = createClient()
+    await supabase.from('finance_account_types').update({ name }).eq('id', id)
+    await fetchAll()
+  }
+
   async function deleteAccountType(id: string) {
     const supabase = createClient()
     await supabase.from('finance_account_types').delete().eq('id', id)
     await fetchAll()
   }
 
-  return { accountTypes, loading, addAccountType, deleteAccountType }
+  return { accountTypes, loading, addAccountType, updateAccountType, deleteAccountType }
 }

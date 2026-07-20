@@ -4,19 +4,23 @@ import { useState } from "react"
 import { Eye, EyeOff, Pencil, Trash2, Check, X } from "lucide-react"
 import { useTradeTracker } from "@/hooks/useTradeTracker"
 import { aggregatePositions } from "@/lib/utils/trades"
+import { computeFutures } from "@/lib/utils/futures"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import BrokerSelector from "./BrokerSelector"
 import PortfolioCard from "./PortfolioCard"
 import TradeTransactions from "./TradeTransactions"
+import FuturesPositionCard from "./futures/FuturesPositionCard"
+import FuturesDetails from "./futures/FuturesDetails"
 
 export default function TradesTracker({ pageId }: { pageId: string }) {
   const {
-    brokers, lots, sells, loading,
+    brokers, lots, sells, futures, loading,
     addBroker, updateBroker, deleteBroker,
     addLot, updateLot, deleteLot,
     addSell, updateSell, deleteSell,
+    addFuturesTrade, updateFuturesTrade, deleteFuturesTrade,
   } = useTradeTracker(pageId)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -33,6 +37,15 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
   const brokerSells = broker ? sells.filter(s => s.account_id === broker.id) : []
   // Portfolio shows only still-held positions (remaining shares > 0).
   const positions = aggregatePositions(brokerLots, brokerSells).filter(p => p.volume > 1e-9)
+
+  const brokerFutures = broker ? futures.filter(t => t.account_id === broker.id) : []
+  const { positions: openPositions, realizedByTrade } = computeFutures(brokerFutures)
+  // Remember each instrument's most-recent contract size to pre-fill the form.
+  const contractSizeByInstrument: Record<string, number> = {}
+  for (const t of brokerFutures) {
+    const k = t.instrument.trim().toUpperCase()
+    if (!(k in contractSizeByInstrument)) contractSizeByInstrument[k] = t.contract_size
+  }
 
   function selectBroker(id: string) {
     setSelectedId(id)
@@ -57,7 +70,7 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
     <div className="space-y-6">
       {confirmDelete && broker && (
         <ConfirmDialog
-          message={`Delete broker "${broker.name}"? All its stocks will also be deleted.`}
+          message={`Delete broker "${broker.name}"? All its data will also be deleted.`}
           onConfirm={handleDeleteBroker}
           onCancel={() => setConfirmDelete(false)}
         />
@@ -69,15 +82,9 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
         <p className="text-sm text-muted-foreground text-center py-8">Add a broker to start tracking your portfolio.</p>
       )}
 
-      {broker && broker.broker_type === 'futures' && (
-        <div className="border border-dashed border-gray-400 rounded-lg py-10 text-center">
-          <p className="text-sm text-muted-foreground">Futures tracking for <span className="font-medium text-foreground">{broker.name}</span> is coming next.</p>
-        </div>
-      )}
-
-      {broker && broker.broker_type === 'stock' && (
+      {broker && (
         <div className="space-y-4">
-          {/* Broker header: rename / delete / hide values */}
+          {/* Broker header: rename / delete / hide values (shared by stock & futures) */}
           <div className="flex items-center justify-between gap-2">
             {renaming ? (
               <div className="flex items-center gap-2 flex-1">
@@ -118,43 +125,85 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
             )}
           </div>
 
-          {/* Section 1: Portfolio (cumulative holdings) */}
-          <section className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Portfolio</h3>
-            {positions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No stocks yet. Add a transaction below.</p>
-            ) : (
-              <div className="space-y-2">
-                {positions.map(pos => (
-                  <PortfolioCard
-                    key={pos.stock_code}
-                    position={pos}
-                    broker={broker}
-                    visible={visible}
-                    onDeleteLot={deleteLot}
-                    onUpdateLot={updateLot}
-                    onSell={addSell}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+          {broker.broker_type === 'stock' ? (
+            <>
+              {/* Section 1: Portfolio (cumulative holdings) */}
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Portfolio</h3>
+                {positions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No stocks yet. Add a transaction below.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {positions.map(pos => (
+                      <PortfolioCard
+                        key={pos.stock_code}
+                        position={pos}
+                        broker={broker}
+                        visible={visible}
+                        onDeleteLot={deleteLot}
+                        onUpdateLot={updateLot}
+                        onSell={addSell}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
 
-          {/* Section 2: Transactions (Finance-style) */}
-          <section className="space-y-3 pt-2 border-t border-gray-400">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-2">Transactions</h3>
-            <TradeTransactions
-              broker={broker}
-              lots={brokerLots}
-              sells={brokerSells}
-              visible={visible}
-              onAddLot={addLot}
-              onUpdateLot={updateLot}
-              onDeleteLot={deleteLot}
-              onUpdateSell={updateSell}
-              onDeleteSell={deleteSell}
-            />
-          </section>
+              {/* Section 2: Transactions (Finance-style) */}
+              <section className="space-y-3 pt-2 border-t border-gray-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-2">Transactions</h3>
+                <TradeTransactions
+                  broker={broker}
+                  lots={brokerLots}
+                  sells={brokerSells}
+                  visible={visible}
+                  onAddLot={addLot}
+                  onUpdateLot={updateLot}
+                  onDeleteLot={deleteLot}
+                  onUpdateSell={updateSell}
+                  onDeleteSell={deleteSell}
+                />
+              </section>
+            </>
+          ) : (
+            <>
+              {/* Section 1: Open Positions (net per instrument) */}
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Open Positions</h3>
+                {openPositions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No open positions. Add a transaction below.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {openPositions.map(pos => (
+                      <FuturesPositionCard
+                        key={pos.instrument}
+                        position={pos}
+                        broker={broker}
+                        visible={visible}
+                        contractSizeByInstrument={contractSizeByInstrument}
+                        onClose={addFuturesTrade}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Section 2: Position details (Finance-style) */}
+              <section className="space-y-3 pt-2 border-t border-gray-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-2">Position details</h3>
+                <FuturesDetails
+                  broker={broker}
+                  trades={brokerFutures}
+                  realizedByTrade={realizedByTrade}
+                  contractSizeByInstrument={contractSizeByInstrument}
+                  visible={visible}
+                  onAdd={addFuturesTrade}
+                  onUpdate={updateFuturesTrade}
+                  onDelete={deleteFuturesTrade}
+                />
+              </section>
+            </>
+          )}
         </div>
       )}
     </div>

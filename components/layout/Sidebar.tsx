@@ -132,7 +132,7 @@ export default function Sidebar() {
                 <CandlestickChart size={16} className="shrink-0 text-muted-foreground" />
                 <span>
                   <span className="block">Trades tracker</span>
-                  <span className="block text-xs text-muted-foreground">Stocks & futures P/L</span>
+                  <span className="block text-xs text-muted-foreground">Stocks, forex & CFDs</span>
                 </span>
               </button>
             </div>

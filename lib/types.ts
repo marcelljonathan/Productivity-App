@@ -110,6 +110,26 @@ export type TradeStockLot = {
   created_at: string
 }
 
+// A futures trade. Buy = long, Sell = short. Open positions are the net per instrument;
+// realized P/L is computed by average-cost netting.
+export type FuturesSide = 'buy' | 'sell'
+
+export type TradeFuturesTrade = {
+  id: string
+  user_id: string
+  page_id: string
+  account_id: string
+  instrument: string
+  side: FuturesSide
+  price: number
+  volume: number
+  contract_size: number  // units per lot (XAUUSD = 100, forex major = 100,000, default 1)
+  commission: number
+  swap: number           // overnight/financing fee, usually entered after closing
+  trade_date: string
+  created_at: string
+}
+
 // One stock sale (partial allowed). Reduces the held position; realized P/L is
 // computed against the weighted-average buy price.
 export type TradeStockSell = {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { BrokerType, Currency, TradeAccount, TradeStockLot, TradeStockSell } from "@/lib/types"
+import { BrokerType, Currency, FuturesSide, TradeAccount, TradeStockLot, TradeStockSell, TradeFuturesTrade } from "@/lib/types"
 
 type NewLot = {
   account_id: string
@@ -22,24 +22,39 @@ type NewSell = {
   fee: number
 }
 
-// One trades page's data: brokers + their stock buys and sells, all scoped to the page.
+type NewFuturesTrade = {
+  account_id: string
+  instrument: string
+  side: FuturesSide
+  price: number
+  volume: number
+  contract_size: number
+  commission: number
+  swap: number
+  trade_date: string
+}
+
+// One trades page's data: brokers + their stock buys/sells and futures trades, scoped to the page.
 export function useTradeTracker(pageId: string) {
   const [brokers, setBrokers] = useState<TradeAccount[]>([])
   const [lots, setLots] = useState<TradeStockLot[]>([])
   const [sells, setSells] = useState<TradeStockSell[]>([])
+  const [futures, setFutures] = useState<TradeFuturesTrade[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
     const supabase = createClient()
-    const [{ data: accs }, { data: lotRows }, { data: sellRows }] = await Promise.all([
+    const [{ data: accs }, { data: lotRows }, { data: sellRows }, { data: futRows }] = await Promise.all([
       supabase.from('trade_accounts').select('*').eq('page_id', pageId).order('created_at', { ascending: true }),
       supabase.from('trade_stock_lots').select('*').eq('page_id', pageId).order('buy_date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('trade_stock_sells').select('*').eq('page_id', pageId).order('sell_date', { ascending: false }).order('created_at', { ascending: false }),
+      supabase.from('trade_futures_trades').select('*').eq('page_id', pageId).order('trade_date', { ascending: false }).order('created_at', { ascending: false }),
     ])
     setBrokers((accs ?? []) as TradeAccount[])
     setLots((lotRows ?? []) as TradeStockLot[])
     setSells((sellRows ?? []) as TradeStockSell[])
+    setFutures((futRows ?? []) as TradeFuturesTrade[])
     setLoading(false)
   }, [pageId])
 
@@ -132,10 +147,45 @@ export function useTradeTracker(pageId: string) {
     await fetchAll()
   }, [fetchAll])
 
+  const addFuturesTrade = useCallback(async (t: NewFuturesTrade) => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('trade_futures_trades').insert({
+      user_id: user.id,
+      page_id: pageId,
+      account_id: t.account_id,
+      instrument: t.instrument.trim().toUpperCase(),
+      side: t.side,
+      price: t.price,
+      volume: t.volume,
+      contract_size: t.contract_size,
+      commission: t.commission,
+      swap: t.swap,
+      trade_date: t.trade_date,
+    })
+    await fetchAll()
+  }, [pageId, fetchAll])
+
+  const updateFuturesTrade = useCallback(async (id: string, updates: Partial<Omit<NewFuturesTrade, 'account_id'>>) => {
+    const supabase = createClient()
+    const patch: Record<string, unknown> = { ...updates }
+    if (typeof patch.instrument === 'string') patch.instrument = patch.instrument.trim().toUpperCase()
+    await supabase.from('trade_futures_trades').update(patch).eq('id', id)
+    await fetchAll()
+  }, [fetchAll])
+
+  const deleteFuturesTrade = useCallback(async (id: string) => {
+    const supabase = createClient()
+    await supabase.from('trade_futures_trades').delete().eq('id', id)
+    await fetchAll()
+  }, [fetchAll])
+
   return {
-    brokers, lots, sells, loading, fetchAll,
+    brokers, lots, sells, futures, loading, fetchAll,
     addBroker, updateBroker, deleteBroker,
     addLot, updateLot, deleteLot,
     addSell, updateSell, deleteSell,
+    addFuturesTrade, updateFuturesTrade, deleteFuturesTrade,
   }
 }

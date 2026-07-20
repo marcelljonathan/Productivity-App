@@ -18,6 +18,7 @@ type Props = {
   onUpdate: (id: string, updates: { name?: string; starting_balance?: number; account_type_id?: string | null }) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onAddAccountType: (name: string) => Promise<void>
+  onUpdateAccountType: (id: string, name: string) => Promise<void>
   onDeleteAccountType: (id: string) => Promise<void>
 }
 
@@ -32,7 +33,7 @@ const NO_TYPE_KEY = '__none__'
 export default function AccountManager({
   accounts, balances, accountTypes,
   onAdd, onUpdate, onDelete,
-  onAddAccountType, onDeleteAccountType,
+  onAddAccountType, onUpdateAccountType, onDeleteAccountType,
 }: Props) {
   const [name, setName] = useState('')
   const [currency, setCurrency] = useState<Currency>('IDR')
@@ -47,6 +48,8 @@ export default function AccountManager({
 
   const [newTypeName, setNewTypeName] = useState('')
   const [showAddType, setShowAddType] = useState(false)
+  const [renameTypeId, setRenameTypeId] = useState<string | null>(null)
+  const [renameTypeName, setRenameTypeName] = useState('')
   const [showAddAccount, setShowAddAccount] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<FinanceAccount | null>(null)
@@ -93,6 +96,17 @@ export default function AccountManager({
     await onAddAccountType(newTypeName.trim())
     setNewTypeName('')
     setShowAddType(false)
+  }
+
+  function startEditType(t: FinanceAccountType) {
+    setRenameTypeId(t.id)
+    setRenameTypeName(t.name)
+  }
+
+  async function handleSaveType(e: React.FormEvent) {
+    e.preventDefault()
+    if (renameTypeId && renameTypeName.trim()) await onUpdateAccountType(renameTypeId, renameTypeName.trim())
+    setRenameTypeId(null)
   }
 
   // Build groups: only types that have at least one account, plus "No Type" if needed
@@ -193,16 +207,36 @@ export default function AccountManager({
         {accountTypes.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {accountTypes.map(t => (
-              <span key={t.id} className="flex items-center gap-1.5 border rounded-full px-3 py-1 text-sm bg-muted/40">
-                {t.name}
-                <button
-                  onClick={() => setConfirmDeleteType(t)}
-                  className="text-muted-foreground hover:text-red-500 transition-colors"
-                  title={`Delete ${t.name}`}
-                >
-                  <X size={12} />
-                </button>
-              </span>
+              renameTypeId === t.id ? (
+                <form key={t.id} onSubmit={handleSaveType} className="flex items-center gap-1">
+                  <Input
+                    value={renameTypeName}
+                    onChange={e => setRenameTypeName(e.target.value)}
+                    className="h-8 text-sm w-36"
+                    autoFocus
+                  />
+                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setRenameTypeId(null)}><X size={14} /></Button>
+                  <Button type="submit" size="icon" className="h-8 w-8"><Check size={14} /></Button>
+                </form>
+              ) : (
+                <span key={t.id} className="flex items-center gap-1.5 border rounded-full px-3 py-1 text-sm bg-muted/40">
+                  {t.name}
+                  <button
+                    onClick={() => startEditType(t)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title={`Rename ${t.name}`}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteType(t)}
+                    className="text-muted-foreground hover:text-red-500 transition-colors"
+                    title={`Delete ${t.name}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              )
             ))}
           </div>
         )}

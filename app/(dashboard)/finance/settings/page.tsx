@@ -14,7 +14,7 @@ import Link from "next/link"
 
 export default function FinanceSettingsPage() {
   const { accounts, balances, addAccount, updateAccount, deleteAccount } = useFinanceAccounts()
-  const { accountTypes, addAccountType, deleteAccountType } = useFinanceAccountTypes()
+  const { accountTypes, addAccountType, updateAccountType, deleteAccountType } = useFinanceAccountTypes()
   const { categories, subcategories, addCategory, deleteCategory, addSubcategory, deleteSubcategory } = useFinanceCategories()
   const { transactionTypes, addTransactionType, deleteTransactionType } = useFinanceTransactionTypes()
 
@@ -41,6 +41,7 @@ export default function FinanceSettingsPage() {
         onUpdate={updateAccount}
         onDelete={deleteAccount}
         onAddAccountType={addAccountType}
+        onUpdateAccountType={updateAccountType}
         onDeleteAccountType={deleteAccountType}
       />
 
