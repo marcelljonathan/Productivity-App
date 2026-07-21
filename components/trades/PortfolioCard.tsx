@@ -10,8 +10,8 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import StockBuyForm from "./StockBuyForm"
 import SellForm from "./SellForm"
 
-type LotFields = { stock_code: string; buy_date: string; buy_price: number; volume: number; fee: number }
-type NewSell = { account_id: string; stock_code: string; sell_date: string; sell_price: number; volume: number; fee: number }
+type LotFields = { stock_code: string; buy_date: string; buy_price: number; volume: number; fee: number; note: string | null }
+type NewSell = { account_id: string; stock_code: string; sell_date: string; sell_price: number; volume: number; fee: number; note: string | null }
 
 type Props = {
   position: StockPosition

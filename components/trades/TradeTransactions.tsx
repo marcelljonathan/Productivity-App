@@ -18,9 +18,9 @@ import TradeWeeklyChart from "./TradeWeeklyChart"
 import TradeMonthlySummary from "./TradeMonthlySummary"
 
 type ViewMode = 'list' | 'daily' | 'weekly' | 'monthly'
-type LotFields = { stock_code: string; buy_date: string; buy_price: number; volume: number; fee: number }
+type LotFields = { stock_code: string; buy_date: string; buy_price: number; volume: number; fee: number; note: string | null }
 type NewLot = LotFields & { account_id: string }
-type SellFields = { stock_code: string; sell_date: string; sell_price: number; volume: number; fee: number }
+type SellFields = { stock_code: string; sell_date: string; sell_price: number; volume: number; fee: number; note: string | null }
 
 type Props = {
   broker: TradeAccount

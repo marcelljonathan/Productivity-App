@@ -14,6 +14,7 @@ type LotFields = {
   buy_price: number
   volume: number
   fee: number
+  note: string | null
 }
 
 type Props = {
@@ -72,6 +73,7 @@ export default function TradeBuyCard({ lot, broker, visible, isEditing, onEdit, 
               Fee −{visible ? formatCurrency(lot.fee, currency) : '••••'}
             </p>
           )}
+          {lot.note && <p className="text-xs text-muted-foreground mt-0.5">{lot.note}</p>}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">

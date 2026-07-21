@@ -75,6 +75,98 @@ export function computeFutures(trades: TradeFuturesTrade[]): FuturesComputed {
   return { positions, realizedByTrade }
 }
 
+// One realized close. Every closing trade is its own dated history entry, so closing
+// part of a position counts only the lots actually closed; closing the rest later is
+// a separate entry on its own date.
+export type FuturesClose = {
+  id: string            // the closing trade's id
+  instrument: string
+  direction: 'long' | 'short'   // the side that was closed
+  volume: number        // lots closed in this event
+  avgEntry: number      // running average entry at the moment of the close
+  exitPrice: number
+  gross: number         // realized P/L before costs
+  costs: number         // this trade's comm+swap + its share of the opening costs
+  netPL: number         // gross − costs
+  openDate: string      // when the position being closed was opened
+  closeDate: string
+}
+
+export function futuresCloses(trades: TradeFuturesTrade[]): FuturesClose[] {
+  const byInstrument = new Map<string, TradeFuturesTrade[]>()
+  for (const t of trades) {
+    const k = key(t.instrument)
+    ;(byInstrument.get(k) ?? byInstrument.set(k, []).get(k)!).push(t)
+  }
+
+  const out: FuturesClose[] = []
+
+  for (const [instrument, list] of byInstrument) {
+    const ordered = [...list].sort((a, b) =>
+      a.trade_date === b.trade_date ? a.created_at.localeCompare(b.created_at) : a.trade_date.localeCompare(b.trade_date)
+    )
+
+    let pos = 0
+    let avgEntry = 0
+    let openCosts = 0   // commissions/swaps booked while opening the current position
+    let openDate = ''
+
+    for (const t of ordered) {
+      const signed = t.side === 'buy' ? t.volume : -t.volume
+      const tradeCosts = t.commission + t.swap
+      const absS = Math.abs(signed)
+
+      if (pos === 0 || Math.sign(pos) === Math.sign(signed)) {
+        // opening or adding
+        if (pos === 0) openDate = t.trade_date
+        avgEntry = (avgEntry * Math.abs(pos) + t.price * absS) / (Math.abs(pos) + absS)
+        pos += signed
+        openCosts += tradeCosts
+      } else {
+        // closing some or all of the position (possibly flipping)
+        const closing = Math.min(absS, Math.abs(pos))
+        const perUnit = pos > 0 ? (t.price - avgEntry) : (avgEntry - t.price)
+        const gross = perUnit * closing * t.contract_size
+        // Opening costs follow the lots being closed, pro rata.
+        const alloc = Math.abs(pos) ? openCosts * (closing / Math.abs(pos)) : 0
+        const costs = tradeCosts + alloc
+        openCosts -= alloc
+
+        out.push({
+          id: t.id,
+          instrument,
+          direction: pos > 0 ? 'long' : 'short',
+          volume: closing,
+          avgEntry,
+          exitPrice: t.price,
+          gross,
+          costs,
+          netPL: gross - costs,
+          openDate,
+          closeDate: t.trade_date,
+        })
+
+        const remaining = absS - closing
+        pos += signed
+
+        if (Math.abs(pos) < EPS) {
+          pos = 0
+          avgEntry = 0
+          openCosts = 0
+        } else if (remaining > EPS) {
+          // flipped: the leftover opens a new position at this price
+          avgEntry = t.price
+          openCosts = 0
+          openDate = t.trade_date
+        }
+      }
+    }
+  }
+
+  out.sort((a, b) => b.closeDate.localeCompare(a.closeDate) || a.instrument.localeCompare(b.instrument))
+  return out
+}
+
 // ---- period aggregates ----
 
 export function futuresCommissions(trades: TradeFuturesTrade[]): number {

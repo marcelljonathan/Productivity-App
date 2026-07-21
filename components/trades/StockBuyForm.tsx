@@ -15,6 +15,7 @@ type NewLot = {
   buy_price: number
   volume: number
   fee: number
+  note: string | null
 }
 
 type Props = {
@@ -38,6 +39,7 @@ export default function StockBuyForm({ broker, defaultDate, lot, submitLabel, on
   const [buyPrice, setBuyPrice] = useState(lot ? String(lot.buy_price) : '')
   const [volume, setVolume] = useState(lot ? String(lot.volume) : '')
   const [fee, setFee] = useState(lot?.fee ? String(lot.fee) : '')
+  const [note, setNote] = useState(lot?.note ?? '')
   const [saving, setSaving] = useState(false)
 
   const symbol = CURRENCY_SYMBOL[broker.currency] ?? broker.currency
@@ -54,6 +56,7 @@ export default function StockBuyForm({ broker, defaultDate, lot, submitLabel, on
       buy_price: parseNum(buyPrice),
       volume: parseNum(volume),
       fee: parseNum(fee),
+      note: note.trim() || null,
     })
     setSaving(false)
   }
@@ -110,6 +113,17 @@ export default function StockBuyForm({ broker, defaultDate, lot, submitLabel, on
           <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">{symbol}</span>
           <AmountInput value={fee} onChange={setFee} placeholder="0" className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0" />
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs">Description (optional)</Label>
+        <Input
+          type="text"
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder="e.g. averaging down, earnings play..."
+          className="text-sm"
+        />
       </div>
 
       <div className="flex gap-2 justify-end">

@@ -43,6 +43,61 @@ export function aggregatePositions(buys: TradeStockLot[], sells: TradeStockSell[
   return positions
 }
 
+// One realized close: every sell is its own dated history entry, so a partial sale
+// counts only the shares actually sold, and a later sale is a separate entry.
+export type StockClose = {
+  id: string             // the sell's id
+  stock_code: string
+  volume: number         // shares sold in this event
+  avgBuy: number         // weighted-average cost basis
+  sellPrice: number
+  gross: number          // (sellPrice − avgBuy) × volume
+  fees: number           // this sell's fee + its share of buy fees
+  netPL: number          // gross − fees
+  closeDate: string
+  buyNotes: string[]
+  sellNote: string | null
+}
+
+export function stockCloses(buys: TradeStockLot[], sells: TradeStockSell[]): StockClose[] {
+  // Per-code cost basis, fee-per-share and buy descriptions.
+  const agg: Record<string, { vol: number; cost: number; fees: number; notes: string[] }> = {}
+  for (const b of buys) {
+    const k = codeKey(b.stock_code)
+    const a = agg[k] ?? { vol: 0, cost: 0, fees: 0, notes: [] }
+    a.vol += b.volume
+    a.cost += b.buy_price * b.volume
+    a.fees += b.fee
+    if (b.note) a.notes.push(b.note)
+    agg[k] = a
+  }
+
+  const out: StockClose[] = sells.map(s => {
+    const k = codeKey(s.stock_code)
+    const a = agg[k]
+    const avgBuy = a && a.vol ? a.cost / a.vol : 0
+    const buyFeePerShare = a && a.vol ? a.fees / a.vol : 0
+    const gross = (s.sell_price - avgBuy) * s.volume
+    const fees = s.fee + buyFeePerShare * s.volume
+    return {
+      id: s.id,
+      stock_code: k,
+      volume: s.volume,
+      avgBuy,
+      sellPrice: s.sell_price,
+      gross,
+      fees,
+      netPL: gross - fees,
+      closeDate: s.sell_date,
+      buyNotes: a ? a.notes : [],
+      sellNote: s.note,
+    }
+  })
+
+  out.sort((a, b) => b.closeDate.localeCompare(a.closeDate) || a.stock_code.localeCompare(b.stock_code))
+  return out
+}
+
 // Weighted-average buy price per stock code (cost basis for realized P/L).
 export function costBasisByCode(buys: TradeStockLot[]): Record<string, number> {
   const agg: Record<string, { cost: number; vol: number }> = {}

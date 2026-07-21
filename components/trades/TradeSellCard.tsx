@@ -14,6 +14,7 @@ type SellFields = {
   sell_price: number
   volume: number
   fee: number
+  note: string | null
 }
 
 type Props = {
@@ -52,6 +53,7 @@ export default function TradeSellCard({ sell, broker, avgBuyPrice, visible, isEd
             sell_price: fields.sell_price,
             volume: fields.volume,
             fee: fields.fee,
+            note: fields.note,
           })
           onEdit(sell)
         }}
@@ -85,6 +87,7 @@ export default function TradeSellCard({ sell, broker, avgBuyPrice, visible, isEd
               Fee −{visible ? formatCurrency(sell.fee, currency) : '••••'}
             </p>
           )}
+          {sell.note && <p className="text-xs text-muted-foreground mt-0.5">{sell.note}</p>}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">

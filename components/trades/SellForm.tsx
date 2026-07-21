@@ -15,6 +15,7 @@ type NewSell = {
   sell_price: number
   volume: number
   fee: number
+  note: string | null
 }
 
 type Props = {
@@ -44,6 +45,7 @@ export default function SellForm({ broker, stockCode, avgBuyPrice, maxVolume, de
   const [sellPrice, setSellPrice] = useState(sell ? String(sell.sell_price) : '')
   const [volume, setVolume] = useState(sell ? String(sell.volume) : (maxVolume ? String(maxVolume) : ''))
   const [fee, setFee] = useState(sell?.fee ? String(sell.fee) : '')
+  const [note, setNote] = useState(sell?.note ?? '')
   const [saving, setSaving] = useState(false)
 
   const symbol = CURRENCY_SYMBOL[broker.currency] ?? broker.currency
@@ -65,6 +67,7 @@ export default function SellForm({ broker, stockCode, avgBuyPrice, maxVolume, de
       sell_price: price,
       volume: vol,
       fee: parseNum(fee),
+      note: note.trim() || null,
     })
     setSaving(false)
   }
@@ -112,6 +115,17 @@ export default function SellForm({ broker, stockCode, avgBuyPrice, maxVolume, de
       {overVolume && (
         <p className="text-xs text-red-600 dark:text-red-400">You only hold {fmtShares(maxVolume!)} shares.</p>
       )}
+
+      <div className="space-y-1">
+        <Label className="text-xs">Description (optional)</Label>
+        <Input
+          type="text"
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder="e.g. took profit, cut loss..."
+          className="text-sm"
+        />
+      </div>
 
       <div className="space-y-1.5 border border-gray-400 rounded-md px-3 py-2 bg-background/60">
         <div className="flex items-center justify-between text-xs">

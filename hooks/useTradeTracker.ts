@@ -11,6 +11,7 @@ type NewLot = {
   buy_price: number
   volume: number
   fee: number
+  note: string | null
 }
 
 type NewSell = {
@@ -20,6 +21,7 @@ type NewSell = {
   sell_price: number
   volume: number
   fee: number
+  note: string | null
 }
 
 type NewFuturesTrade = {
@@ -98,6 +100,7 @@ export function useTradeTracker(pageId: string) {
       buy_price: lot.buy_price,
       volume: lot.volume,
       fee: lot.fee,
+      note: lot.note,
     })
     await fetchAll()
   }, [pageId, fetchAll])
@@ -129,6 +132,7 @@ export function useTradeTracker(pageId: string) {
       sell_price: sell.sell_price,
       volume: sell.volume,
       fee: sell.fee,
+      note: sell.note,
     })
     await fetchAll()
   }, [pageId, fetchAll])

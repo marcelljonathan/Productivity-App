@@ -107,6 +107,7 @@ export type TradeStockLot = {
   buy_price: number
   volume: number
   fee: number
+  note: string | null
   created_at: string
 }
 
@@ -142,6 +143,7 @@ export type TradeStockSell = {
   sell_price: number
   volume: number
   fee: number
+  note: string | null
   created_at: string
 }
 

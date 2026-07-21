@@ -3,16 +3,18 @@
 import { useState } from "react"
 import { Eye, EyeOff, Pencil, Trash2, Check, X } from "lucide-react"
 import { useTradeTracker } from "@/hooks/useTradeTracker"
-import { aggregatePositions } from "@/lib/utils/trades"
-import { computeFutures } from "@/lib/utils/futures"
+import { aggregatePositions, stockCloses } from "@/lib/utils/trades"
+import { computeFutures, futuresCloses } from "@/lib/utils/futures"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import BrokerSelector from "./BrokerSelector"
 import PortfolioCard from "./PortfolioCard"
 import TradeTransactions from "./TradeTransactions"
+import StockHistory from "./StockHistory"
 import FuturesPositionCard from "./futures/FuturesPositionCard"
 import FuturesDetails from "./futures/FuturesDetails"
+import FuturesHistory from "./futures/FuturesHistory"
 
 export default function TradesTracker({ pageId }: { pageId: string }) {
   const {
@@ -24,6 +26,8 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
   } = useTradeTracker(pageId)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [stockTab, setStockTab] = useState<'portfolio' | 'transactions' | 'history'>('portfolio')
+  const [cfdTab, setCfdTab] = useState<'positions' | 'details' | 'history'>('positions')
   const [visible, setVisible] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
@@ -37,9 +41,11 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
   const brokerSells = broker ? sells.filter(s => s.account_id === broker.id) : []
   // Portfolio shows only still-held positions (remaining shares > 0).
   const positions = aggregatePositions(brokerLots, brokerSells).filter(p => p.volume > 1e-9)
+  const closed = stockCloses(brokerLots, brokerSells)
 
   const brokerFutures = broker ? futures.filter(t => t.account_id === broker.id) : []
   const { positions: openPositions, realizedByTrade } = computeFutures(brokerFutures)
+  const cfdCloses = futuresCloses(brokerFutures)
   // Remember each instrument's most-recent contract size to pre-fill the form.
   const contractSizeByInstrument: Record<string, number> = {}
   for (const t of brokerFutures) {
@@ -127,11 +133,30 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
 
           {broker.broker_type === 'stock' ? (
             <>
-              {/* Section 1: Portfolio (cumulative holdings) */}
-              <section className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Portfolio</h3>
-                {positions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No stocks yet. Add a transaction below.</p>
+              {/* Portfolio / Transactions / History tabs */}
+              <div className="flex justify-center">
+                <div className="flex items-center border rounded-full p-0.5 text-xs font-medium">
+                  {([
+                    { key: 'portfolio', label: 'Portfolio' },
+                    { key: 'transactions', label: 'Transactions' },
+                    { key: 'history', label: 'History' },
+                  ] as const).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setStockTab(key)}
+                      className={`px-3.5 py-1 rounded-full transition-colors ${
+                        stockTab === key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {stockTab === 'portfolio' && (
+                positions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No stocks yet. Add one from the Transactions tab.</p>
                 ) : (
                   <div className="space-y-2">
                     {positions.map(pos => (
@@ -146,12 +171,10 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
                       />
                     ))}
                   </div>
-                )}
-              </section>
+                )
+              )}
 
-              {/* Section 2: Transactions (Finance-style) */}
-              <section className="space-y-3 pt-2 border-t border-gray-400">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-2">Transactions</h3>
+              {stockTab === 'transactions' && (
                 <TradeTransactions
                   broker={broker}
                   lots={brokerLots}
@@ -163,15 +186,38 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
                   onUpdateSell={updateSell}
                   onDeleteSell={deleteSell}
                 />
-              </section>
+              )}
+
+              {stockTab === 'history' && (
+                <StockHistory closes={closed} broker={broker} visible={visible} />
+              )}
             </>
           ) : (
             <>
-              {/* Section 1: Open Positions (net per instrument) */}
-              <section className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Open Positions</h3>
-                {openPositions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No open positions. Add a transaction below.</p>
+              {/* Open Positions / Position details / History tabs */}
+              <div className="flex justify-center">
+                <div className="flex items-center border rounded-full p-0.5 text-xs font-medium">
+                  {([
+                    { key: 'positions', label: 'Open Positions' },
+                    { key: 'details', label: 'Position details' },
+                    { key: 'history', label: 'History' },
+                  ] as const).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setCfdTab(key)}
+                      className={`px-3.5 py-1 rounded-full transition-colors ${
+                        cfdTab === key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {cfdTab === 'positions' && (
+                openPositions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No open positions.</p>
                 ) : (
                   <div className="space-y-2">
                     {openPositions.map(pos => (
@@ -185,12 +231,10 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
                       />
                     ))}
                   </div>
-                )}
-              </section>
+                )
+              )}
 
-              {/* Section 2: Position details (Finance-style) */}
-              <section className="space-y-3 pt-2 border-t border-gray-400">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-2">Position details</h3>
+              {cfdTab === 'details' && (
                 <FuturesDetails
                   broker={broker}
                   trades={brokerFutures}
@@ -201,7 +245,11 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
                   onUpdate={updateFuturesTrade}
                   onDelete={deleteFuturesTrade}
                 />
-              </section>
+              )}
+
+              {cfdTab === 'history' && (
+                <FuturesHistory closes={cfdCloses} broker={broker} visible={visible} />
+              )}
             </>
           )}
         </div>
