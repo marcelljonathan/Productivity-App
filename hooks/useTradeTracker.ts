@@ -33,6 +33,7 @@ type NewFuturesTrade = {
   contract_size: number
   commission: number
   swap: number
+  usd_rate: number
   trade_date: string
 }
 
@@ -166,6 +167,7 @@ export function useTradeTracker(pageId: string) {
       contract_size: t.contract_size,
       commission: t.commission,
       swap: t.swap,
+      usd_rate: t.usd_rate,
       trade_date: t.trade_date,
     })
     await fetchAll()

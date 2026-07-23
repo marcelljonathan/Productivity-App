@@ -16,6 +16,7 @@ type TradeFields = {
   contract_size: number
   commission: number
   swap: number
+  usd_rate: number
   trade_date: string
 }
 
@@ -59,6 +60,7 @@ export default function FuturesTradeCard({ trade: t, broker, realizedGross, visi
             contract_size: fields.contract_size,
             commission: fields.commission,
             swap: fields.swap,
+            usd_rate: fields.usd_rate,
             trade_date: fields.trade_date,
           })
           onEdit(t)
@@ -89,6 +91,7 @@ export default function FuturesTradeCard({ trade: t, broker, realizedGross, visi
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {visible ? fmtContracts(t.volume) : '••••'} @ {visible ? formatCurrency(t.price, currency) : '••••'}
+            {t.usd_rate !== 1 && <span> · rate {fmtContracts(t.usd_rate)}</span>}
           </p>
           {(t.commission > 0 || t.swap !== 0) && (
             <p className="text-xs text-muted-foreground mt-0.5">

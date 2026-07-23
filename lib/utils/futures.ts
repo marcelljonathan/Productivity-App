@@ -48,10 +48,11 @@ export function computeFutures(trades: TradeFuturesTrade[]): FuturesComputed {
         pos += signed
       } else {
         // opposite direction → close against the average, maybe flip.
-        // Cash P/L scales by the contract size (units per lot), e.g. XAUUSD = 100 oz/lot.
+        // Cash P/L scales by the contract size (units per lot), e.g. XAUUSD = 100 oz/lot,
+        // and by the closing trade's quote→USD rate (1 for …/USD pairs).
         const closing = Math.min(Math.abs(signed), Math.abs(pos))
         const perUnit = pos > 0 ? (t.price - avgEntry) : (avgEntry - t.price)
-        realized += perUnit * closing * t.contract_size
+        realized += perUnit * closing * t.contract_size * t.usd_rate
         const remaining = Math.abs(signed) - closing
         pos += signed
         if (Math.abs(pos) < EPS) { pos = 0; avgEntry = 0 }
@@ -126,7 +127,7 @@ export function futuresCloses(trades: TradeFuturesTrade[]): FuturesClose[] {
         // closing some or all of the position (possibly flipping)
         const closing = Math.min(absS, Math.abs(pos))
         const perUnit = pos > 0 ? (t.price - avgEntry) : (avgEntry - t.price)
-        const gross = perUnit * closing * t.contract_size
+        const gross = perUnit * closing * t.contract_size * t.usd_rate
         // Opening costs follow the lots being closed, pro rata.
         const alloc = Math.abs(pos) ? openCosts * (closing / Math.abs(pos)) : 0
         const costs = tradeCosts + alloc

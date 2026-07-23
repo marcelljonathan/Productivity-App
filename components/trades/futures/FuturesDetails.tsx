@@ -15,7 +15,7 @@ import FuturesWeeklyChart from "./FuturesWeeklyChart"
 import FuturesMonthlySummary from "./FuturesMonthlySummary"
 
 type ViewMode = 'list' | 'daily' | 'weekly' | 'monthly'
-type TradeFields = { instrument: string; side: 'buy' | 'sell'; price: number; volume: number; contract_size: number; commission: number; swap: number; trade_date: string }
+type TradeFields = { instrument: string; side: 'buy' | 'sell'; price: number; volume: number; contract_size: number; commission: number; swap: number; usd_rate: number; trade_date: string }
 type NewTrade = TradeFields & { account_id: string }
 
 type Props = {

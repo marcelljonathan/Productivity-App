@@ -127,6 +127,7 @@ export type TradeFuturesTrade = {
   contract_size: number  // units per lot (XAUUSD = 100, forex major = 100,000, default 1)
   commission: number
   swap: number           // overnight/financing fee, usually entered after closing
+  usd_rate: number       // quote-currency → account-currency (USD) rate at close; 1 for …/USD pairs
   trade_date: string
   created_at: string
 }

@@ -16,6 +16,7 @@ type NewTrade = {
   contract_size: number
   commission: number
   swap: number
+  usd_rate: number
   trade_date: string
 }
 

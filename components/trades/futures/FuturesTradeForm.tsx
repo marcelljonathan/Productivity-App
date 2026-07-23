@@ -16,6 +16,7 @@ type NewTrade = {
   contract_size: number
   commission: number
   swap: number
+  usd_rate: number
   trade_date: string
 }
 
@@ -48,6 +49,8 @@ function fmtShares(n: number): string {
 export default function FuturesTradeForm({ broker, defaultDate, trade, lockInstrument, lockSide, maxVolume, contractSizeByInstrument, mode = 'open', submitLabel, onSubmit, onCancel }: Props) {
   const showCommission = mode !== 'close'
   const showSwap = mode !== 'open'
+  // The quote→USD rate only matters on the trade that realizes P/L (a close), same as swap.
+  const showRate = mode !== 'open'
   const sizeFor = (inst: string) => contractSizeByInstrument?.[inst.trim().toUpperCase()]
   const initialSize = trade?.contract_size ?? sizeFor(lockInstrument ?? '') ?? 1
 
@@ -59,6 +62,7 @@ export default function FuturesTradeForm({ broker, defaultDate, trade, lockInstr
   const [contractSize, setContractSize] = useState(String(initialSize))
   const [commission, setCommission] = useState(trade?.commission ? String(trade.commission) : '')
   const [swap, setSwap] = useState(trade?.swap ? String(trade.swap) : '')
+  const [usdRate, setUsdRate] = useState(trade?.usd_rate != null ? String(trade.usd_rate) : '1')
   const [saving, setSaving] = useState(false)
 
   const symbol = CURRENCY_SYMBOL[broker.currency] ?? broker.currency
@@ -88,6 +92,7 @@ export default function FuturesTradeForm({ broker, defaultDate, trade, lockInstr
       contract_size: parseNum(contractSize) || 1,
       commission: showCommission ? parseNum(commission) : 0,
       swap: showSwap ? parseNum(swap) : 0,
+      usd_rate: showRate ? (parseNum(usdRate) || 1) : 1,
       trade_date: tradeDate,
     })
     setSaving(false)
@@ -141,10 +146,13 @@ export default function FuturesTradeForm({ broker, defaultDate, trade, lockInstr
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Price</Label>
-          <div className="flex items-center border rounded-md overflow-hidden bg-background text-sm">
-            <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">{symbol}</span>
-            <AmountInput value={price} onChange={setPrice} placeholder="0" className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0" required />
-          </div>
+          <AmountInput
+            value={price}
+            onChange={setPrice}
+            placeholder="0"
+            className="w-full border rounded-md px-3 py-1.5 text-sm bg-background outline-none"
+            required
+          />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">
@@ -172,6 +180,21 @@ export default function FuturesTradeForm({ broker, defaultDate, trade, lockInstr
         />
         <p className="text-[11px] text-muted-foreground">units per lot · XAUUSD 100, forex 100,000</p>
       </div>
+
+      {showRate && (
+        <div className="space-y-1">
+          <Label className="text-xs">USD conversion rate</Label>
+          <AmountInput
+            value={usdRate}
+            onChange={setUsdRate}
+            placeholder="1"
+            className="w-full border rounded-md px-3 py-1.5 text-sm bg-background outline-none"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            1 unit of quote currency in {broker.currency} · leave 1 for …{broker.currency} pairs (e.g. EURUSD, XAUUSD)
+          </p>
+        </div>
+      )}
 
       {(showCommission || showSwap) && (
         <div className={`grid gap-3 ${showCommission && showSwap ? 'grid-cols-2' : 'grid-cols-1'}`}>
