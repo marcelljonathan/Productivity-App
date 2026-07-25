@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,11 +54,6 @@ export default function LoginPage() {
 
           <Button type="submit" className="w-full">Login</Button>
         </form>
-
-        <p className="text-center text-sm">
-          Don't have an account?{" "}
-          <Link href="/signup" className="underline">Sign up</Link>
-        </p>
       </div>
     </div>
   )
