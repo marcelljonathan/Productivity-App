@@ -195,6 +195,8 @@ export default function FinancePage() {
               weekStart={weekStart}
               txByDate={weekTxByDate}
               accounts={accounts}
+              categories={categories}
+              subcategories={subcategories}
               onDayClick={handleDayClick}
             />
           )}
