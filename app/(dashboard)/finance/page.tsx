@@ -57,6 +57,10 @@ export default function FinancePage() {
   const [yearMonth, setYearMonth] = useState(toYearMonth(getTodayLocalDate()))
   const [weekStart, setWeekStart] = useState(getWeekStart(getTodayLocalDate()))
   const [monthOffset, setMonthOffset] = useState(0)
+  // Show/hide figures — held here so it survives view/date changes (which remount the
+  // summaries), but resets to hidden on a full page refresh.
+  const [showValues, setShowValues] = useState(false)
+  const toggleValues = () => setShowValues(v => !v)
 
   const { startDay } = useMonthlyStartDay()
   // Monthly summary anchors on the period containing today (derived, so it reacts to
@@ -147,6 +151,8 @@ export default function FinancePage() {
               categories={categories}
               subcategories={subcategories}
               transactionTypes={transactionTypes}
+              visible={showValues}
+              onToggleVisible={toggleValues}
               onRefresh={handleRefresh}
             />
           )}
@@ -171,6 +177,8 @@ export default function FinancePage() {
               yearMonth={yearMonth}
               txByDate={monthTxByDate}
               accounts={accounts}
+              visible={showValues}
+              onToggleVisible={toggleValues}
               onDayClick={handleDayClick}
             />
           )}
@@ -197,6 +205,8 @@ export default function FinancePage() {
               accounts={accounts}
               categories={categories}
               subcategories={subcategories}
+              visible={showValues}
+              onToggleVisible={toggleValues}
               onDayClick={handleDayClick}
             />
           )}
@@ -225,6 +235,8 @@ export default function FinancePage() {
               categories={categories}
               subcategories={subcategories}
               transactionTypes={transactionTypes}
+              visible={showValues}
+              onToggleVisible={toggleValues}
             />
           )}
         </div>

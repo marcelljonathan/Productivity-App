@@ -12,6 +12,8 @@ type Props = {
   accounts: FinanceAccount[]
   categories: FinanceCategory[]
   subcategories: FinanceSubcategory[]
+  visible: boolean
+  onToggleVisible: () => void
   onDayClick: (date: string) => void
 }
 
@@ -19,12 +21,12 @@ type BarMode = 'expense' | 'income' | 'both'
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, categories, subcategories, onDayClick }: Props) {
-  const [visible, setVisible] = useState(false)
+export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, categories, subcategories, visible, onToggleVisible, onDayClick }: Props) {
   const [mode, setMode] = useState<BarMode>('expense')
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
   const [catMode, setCatMode] = useState<'income' | 'expense'>('expense')
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
+  const [selectedCur, setSelectedCur] = useState<'IDR' | 'USD'>('IDR')
 
   const today = getTodayLocalDate()
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -49,12 +51,6 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
       }
     }
   }
-  const activeCatTotals = catMode === 'income' ? incomeCatTotals : expenseCatTotals
-  const sortedCategories = Object.entries(activeCatTotals)
-    .map(([catId, amounts]) => ({ category: categories.find(c => c.id === catId), IDR: amounts.IDR, USD: amounts.USD }))
-    .filter(e => e.category)
-    .sort((a, b) => (b.IDR + b.USD) - (a.IDR + a.USD))
-
   const dayData = days.map((dateStr, i) => ({
     dateStr,
     label: DAY_NAMES[i],
@@ -72,14 +68,23 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
     weekTotals.USD.expense += flow.USD.expense
   }
 
+  // The chart and categories show one currency at a time (summing IDR+USD is meaningless).
+  // Toggle only appears when both have activity; if the picked currency is empty this week,
+  // fall back to whichever one has data.
+  const activeCurrencies = (['IDR', 'USD'] as const).filter(c => weekTotals[c].income > 0 || weekTotals[c].expense > 0)
+  const cur = activeCurrencies.includes(selectedCur) ? selectedCur : (activeCurrencies[0] ?? 'IDR')
+
+  const activeCatTotals = catMode === 'income' ? incomeCatTotals : expenseCatTotals
+  const sortedCategories = Object.entries(activeCatTotals)
+    .map(([catId, amounts]) => ({ category: categories.find(c => c.id === catId), amount: amounts[cur] }))
+    .filter(e => e.category && e.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+
   const relevantValues = dayData.flatMap(d => {
     if (d.isFuture) return [0]
-    if (mode === 'income') return [d.flow.IDR.income + d.flow.USD.income]
-    if (mode === 'expense') return [d.flow.IDR.expense + d.flow.USD.expense]
-    return [
-      d.flow.IDR.income + d.flow.USD.income,
-      d.flow.IDR.expense + d.flow.USD.expense,
-    ]
+    if (mode === 'income') return [d.flow[cur].income]
+    if (mode === 'expense') return [d.flow[cur].expense]
+    return [d.flow[cur].income, d.flow[cur].expense]
   })
   const maxAmount = Math.max(...relevantValues, 1)
 
@@ -88,7 +93,7 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <button onClick={() => setVisible(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={onToggleVisible} className="text-muted-foreground hover:text-foreground transition-colors">
           {visible ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
       </div>
@@ -123,6 +128,24 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
         })}
       </div>
 
+      {activeCurrencies.length > 1 && (
+        <div className="flex items-center justify-center">
+          <div className="flex items-center border rounded-full p-0.5 text-xs font-medium">
+            {activeCurrencies.map(c => (
+              <button
+                key={c}
+                onClick={() => { setSelectedCur(c); setExpandedCatId(null) }}
+                className={`px-4 py-1 rounded-full transition-colors ${
+                  cur === c ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-center">
         <div className="flex items-center border rounded-full p-0.5 text-xs font-medium">
           {(['expense', 'income', 'both'] as BarMode[]).map(m => (
@@ -143,8 +166,8 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
 
       <div className="grid grid-cols-7 gap-1 items-end">
         {dayData.map(({ dateStr, label, day, flow, isFuture, isToday }) => {
-          const income = flow.IDR.income + flow.USD.income
-          const expense = flow.IDR.expense + flow.USD.expense
+          const income = flow[cur].income
+          const expense = flow[cur].expense
           const incomeH = isFuture ? 0 : Math.round((income / maxAmount) * 80)
           const expenseH = isFuture ? 0 : Math.round((expense / maxAmount) * 80)
           const isHovered = hoveredDay === dateStr
@@ -162,20 +185,10 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
                   {visible ? (
                     <div className="space-y-1">
                       {(mode === 'income' || mode === 'both') && income > 0 && (
-                        <p className="text-green-600 dark:text-green-400">
-                          +{flow.IDR.income > 0 ? formatCurrency(flow.IDR.income, 'IDR') : formatCurrency(flow.USD.income, 'USD')}
-                          {flow.IDR.income > 0 && flow.USD.income > 0 && (
-                            <span className="ml-1 text-muted-foreground">/ {formatCurrency(flow.USD.income, 'USD')}</span>
-                          )}
-                        </p>
+                        <p className="text-green-600 dark:text-green-400">+{formatCurrency(income, cur)}</p>
                       )}
                       {(mode === 'expense' || mode === 'both') && expense > 0 && (
-                        <p className="text-red-600 dark:text-red-400">
-                          −{flow.IDR.expense > 0 ? formatCurrency(flow.IDR.expense, 'IDR') : formatCurrency(flow.USD.expense, 'USD')}
-                          {flow.IDR.expense > 0 && flow.USD.expense > 0 && (
-                            <span className="ml-1 text-muted-foreground">/ {formatCurrency(flow.USD.expense, 'USD')}</span>
-                          )}
-                        </p>
+                        <p className="text-red-600 dark:text-red-400">−{formatCurrency(expense, cur)}</p>
                       )}
                     </div>
                   ) : (
@@ -220,7 +233,7 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
         )}
       </div>
 
-      {sortedCategories.length > 0 && (
+      {activeCurrencies.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-muted-foreground">Categories</h3>
@@ -239,11 +252,16 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
             </div>
           </div>
 
+          {sortedCategories.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No {catMode} transactions in {cur} this week.
+            </p>
+          ) : (
           <div className="space-y-1">
-            {sortedCategories.map(({ category, IDR, USD }) => {
+            {sortedCategories.map(({ category, amount }) => {
               const catSubs = subcategories.filter(s => s.category_id === category!.id)
               const isExpanded = expandedCatId === category!.id
-              const hasSubs = catSubs.some(s => subTotals[s.id] && (subTotals[s.id].IDR > 0 || subTotals[s.id].USD > 0))
+              const hasSubs = catSubs.some(s => subTotals[s.id] && subTotals[s.id][cur] > 0)
 
               return (
                 <div key={category!.id} className="border border-gray-400 rounded-lg overflow-hidden">
@@ -257,14 +275,7 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
                       {hasSubs && (isExpanded ? <ChevronUp size={13} className="text-muted-foreground" /> : <ChevronDown size={13} className="text-muted-foreground" />)}
                     </div>
                     <div className="text-right text-muted-foreground text-xs">
-                      {visible ? (
-                        <>
-                          {IDR > 0 && <span className="mr-2">{formatCurrency(IDR, 'IDR')}</span>}
-                          {USD > 0 && <span>{formatCurrency(USD, 'USD')}</span>}
-                        </>
-                      ) : (
-                        <span className="tracking-widest">••••••</span>
-                      )}
+                      {visible ? formatCurrency(amount, cur) : <span className="tracking-widest">••••••</span>}
                     </div>
                   </button>
 
@@ -272,19 +283,12 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
                     <div className="border-t border-gray-200 dark:border-border bg-muted/20 px-4 py-2 space-y-1.5">
                       {catSubs.map(sub => {
                         const st = subTotals[sub.id]
-                        if (!st || (st.IDR === 0 && st.USD === 0)) return null
+                        if (!st || st[cur] === 0) return null
                         return (
                           <div key={sub.id} className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground pl-2">{sub.name}</span>
                             <div className="text-right text-muted-foreground">
-                              {visible ? (
-                                <>
-                                  {st.IDR > 0 && <span className="mr-2">{formatCurrency(st.IDR, 'IDR')}</span>}
-                                  {st.USD > 0 && <span>{formatCurrency(st.USD, 'USD')}</span>}
-                                </>
-                              ) : (
-                                <span className="tracking-widest">••••••</span>
-                              )}
+                              {visible ? formatCurrency(st[cur], cur) : <span className="tracking-widest">••••••</span>}
                             </div>
                           </div>
                         )
@@ -295,6 +299,7 @@ export default function WeeklyFinanceSummary({ weekStart, txByDate, accounts, ca
               )
             })}
           </div>
+          )}
         </div>
       )}
     </div>

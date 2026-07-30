@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { FinanceAccount, FinanceTransaction } from "@/lib/types"
 import { getTodayLocalDate } from "@/lib/utils/timezone"
@@ -10,6 +9,8 @@ type Props = {
   yearMonth: string
   txByDate: Record<string, FinanceTransaction[]>
   accounts: FinanceAccount[]
+  visible: boolean
+  onToggleVisible: () => void
   onDayClick: (date: string) => void
 }
 
@@ -31,8 +32,7 @@ function dayCellColor(txs: FinanceTransaction[], accounts: FinanceAccount[], isF
   return 'bg-yellow-200 dark:bg-yellow-800/60'
 }
 
-export default function DailyFinanceSummary({ yearMonth, txByDate, accounts, onDayClick }: Props) {
-  const [visible, setVisible] = useState(false)
+export default function DailyFinanceSummary({ yearMonth, txByDate, accounts, visible, onToggleVisible, onDayClick }: Props) {
   const [year, month] = yearMonth.split('-').map(Number)
   const today = getTodayLocalDate()
   const firstWeekday = new Date(year, month - 1, 1).getDay()
@@ -53,7 +53,7 @@ export default function DailyFinanceSummary({ yearMonth, txByDate, accounts, onD
           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-200 dark:bg-red-800/60" /> Expense &gt; Income</span>
           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-yellow-200 dark:bg-yellow-800/60" /> Balanced</span>
         </div>
-        <button onClick={() => setVisible(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={onToggleVisible} className="text-muted-foreground hover:text-foreground transition-colors">
           {visible ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
       </div>

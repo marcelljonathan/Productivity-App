@@ -14,12 +14,14 @@ type Props = {
   categories: FinanceCategory[]
   subcategories: FinanceSubcategory[]
   transactionTypes: FinanceTransactionType[]
+  visible: boolean
+  onToggleVisible: () => void
 }
 
-export default function MonthlyFinanceSummary({ periodStart, periodEnd, transactions, accounts, categories, subcategories, transactionTypes }: Props) {
-  const [visible, setVisible] = useState(false)
+export default function MonthlyFinanceSummary({ periodStart, periodEnd, transactions, accounts, categories, subcategories, transactionTypes, visible, onToggleVisible }: Props) {
   const [customExpanded, setCustomExpanded] = useState(false)
   const [catMode, setCatMode] = useState<'income' | 'expense'>('expense')
+  const [catCur, setCatCur] = useState<'IDR' | 'USD'>('IDR')
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
   const today = getTodayLocalDate()
 
@@ -29,6 +31,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
   const subTotals: Record<string, { IDR: number; USD: number }> = {}
   const customByType: Record<string, { IDR: number; USD: number }> = {}
   const customTotals = { IDR: 0, USD: 0 }
+  const customCount = { IDR: 0, USD: 0 }
 
   for (const tx of transactions) {
     const acc = accounts.find(a => a.id === tx.account_id)
@@ -66,6 +69,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
       if (!customByType[tx.custom_type_id]) customByType[tx.custom_type_id] = { IDR: 0, USD: 0 }
       customByType[tx.custom_type_id][cur] += signed
       customTotals[cur] += signed
+      customCount[cur]++
     }
   }
 
@@ -81,25 +85,26 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
     .length
 
   const currencies = (['IDR', 'USD'] as const).filter(
-    cur => totals[cur].income > 0 || totals[cur].expense > 0
+    cur => totals[cur].income > 0 || totals[cur].expense > 0 || customCount[cur] > 0
   )
+
+  // Categories show one currency at a time. The toggle appears only when both currencies
+  // have income/expense; if the picked one is empty, fall back to whichever has data.
+  const catCurrencies = (['IDR', 'USD'] as const).filter(c => totals[c].income > 0 || totals[c].expense > 0)
+  const cur = catCurrencies.includes(catCur) ? catCur : (catCurrencies[0] ?? 'IDR')
 
   const activeCatTotals = catMode === 'income' ? incomeCatTotals : expenseCatTotals
   const sortedCategories = Object.entries(activeCatTotals)
-    .map(([catId, amounts]) => ({
-      category: categories.find(c => c.id === catId),
-      IDR: amounts.IDR,
-      USD: amounts.USD,
-    }))
-    .filter(e => e.category)
-    .sort((a, b) => (b.IDR + b.USD) - (a.IDR + a.USD))
+    .map(([catId, amounts]) => ({ category: categories.find(c => c.id === catId), amount: amounts[cur] }))
+    .filter(e => e.category && e.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
 
   const MASK = '••••••'
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <button onClick={() => setVisible(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={onToggleVisible} className="text-muted-foreground hover:text-foreground transition-colors">
           {visible ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
       </div>
@@ -112,7 +117,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
         const netIncome = totals[cur].income - totals[cur].expense
         const customNet = customTotals[cur]
         const allNet = netIncome + customNet
-        const hasCustom = customNet !== 0 || Object.keys(customByType).length > 0
+        const hasCustom = customCount[cur] > 0
 
         return (
           <div key={cur} className="space-y-3">
@@ -195,30 +200,52 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
         </div>
       </div>
 
-      {sortedCategories.length > 0 && (
+      {catCurrencies.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <h3 className="text-sm font-semibold text-muted-foreground">Categories</h3>
-            <div className="flex items-center border rounded-full p-0.5 text-xs font-medium">
-              {(['expense', 'income'] as const).map(m => (
-                <button
-                  key={m}
-                  onClick={() => { setCatMode(m); setExpandedCatId(null) }}
-                  className={`px-3 py-1 rounded-full transition-colors capitalize ${
-                    catMode === m ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              {catCurrencies.length > 1 && (
+                <div className="flex items-center border rounded-full p-0.5 text-xs font-medium">
+                  {catCurrencies.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => { setCatCur(c); setExpandedCatId(null) }}
+                      className={`px-3 py-1 rounded-full transition-colors ${
+                        cur === c ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center border rounded-full p-0.5 text-xs font-medium">
+                {(['expense', 'income'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => { setCatMode(m); setExpandedCatId(null) }}
+                    className={`px-3 py-1 rounded-full transition-colors capitalize ${
+                      catMode === m ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
+          {sortedCategories.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No {catMode} transactions in {cur} this month.
+            </p>
+          ) : (
           <div className="space-y-1">
-            {sortedCategories.map(({ category, IDR, USD }) => {
+            {sortedCategories.map(({ category, amount }) => {
               const catSubs = subcategories.filter(s => s.category_id === category!.id)
               const isExpanded = expandedCatId === category!.id
-              const hasSubs = catSubs.some(s => subTotals[s.id] && (subTotals[s.id].IDR > 0 || subTotals[s.id].USD > 0))
+              const hasSubs = catSubs.some(s => subTotals[s.id] && subTotals[s.id][cur] > 0)
 
               return (
                 <div key={category!.id} className="border border-gray-400 rounded-lg overflow-hidden">
@@ -232,14 +259,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
                       {hasSubs && (isExpanded ? <ChevronUp size={13} className="text-muted-foreground" /> : <ChevronDown size={13} className="text-muted-foreground" />)}
                     </div>
                     <div className="text-right text-muted-foreground text-xs">
-                      {visible ? (
-                        <>
-                          {IDR > 0 && <span className="mr-2">{formatCurrency(IDR, 'IDR')}</span>}
-                          {USD > 0 && <span>{formatCurrency(USD, 'USD')}</span>}
-                        </>
-                      ) : (
-                        <span className="tracking-widest">{MASK}</span>
-                      )}
+                      {visible ? formatCurrency(amount, cur) : <span className="tracking-widest">{MASK}</span>}
                     </div>
                   </button>
 
@@ -247,19 +267,12 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
                     <div className="border-t border-gray-200 dark:border-border bg-muted/20 px-4 py-2 space-y-1.5">
                       {catSubs.map(sub => {
                         const st = subTotals[sub.id]
-                        if (!st || (st.IDR === 0 && st.USD === 0)) return null
+                        if (!st || st[cur] === 0) return null
                         return (
                           <div key={sub.id} className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground pl-2">{sub.name}</span>
                             <div className="text-right text-muted-foreground">
-                              {visible ? (
-                                <>
-                                  {st.IDR > 0 && <span className="mr-2">{formatCurrency(st.IDR, 'IDR')}</span>}
-                                  {st.USD > 0 && <span>{formatCurrency(st.USD, 'USD')}</span>}
-                                </>
-                              ) : (
-                                <span className="tracking-widest">{MASK}</span>
-                              )}
+                              {visible ? formatCurrency(st[cur], cur) : <span className="tracking-widest">{MASK}</span>}
                             </div>
                           </div>
                         )
@@ -270,6 +283,7 @@ export default function MonthlyFinanceSummary({ periodStart, periodEnd, transact
               )
             })}
           </div>
+          )}
         </div>
       )}
     </div>

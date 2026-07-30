@@ -15,13 +15,14 @@ type Props = {
   categories: FinanceCategory[]
   subcategories: FinanceSubcategory[]
   transactionTypes: FinanceTransactionType[]
+  visible: boolean
+  onToggleVisible: () => void
   onRefresh: () => void
 }
 
-export default function TransactionList({ transactions, date, accounts, categories, subcategories, transactionTypes, onRefresh }: Props) {
+export default function TransactionList({ transactions, date, accounts, categories, subcategories, transactionTypes, visible, onToggleVisible, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [editingTx, setEditingTx] = useState<FinanceTransaction | null>(null)
-  const [visible, setVisible] = useState(false)
 
   const incomeTotal = transactions
     .filter(tx => tx.type === 'income')
@@ -99,7 +100,7 @@ export default function TransactionList({ transactions, date, accounts, categori
             )}
           </div>
           <button
-            onClick={() => setVisible(v => !v)}
+            onClick={onToggleVisible}
             className="text-muted-foreground hover:text-foreground transition-colors ml-2 shrink-0"
           >
             {visible ? <EyeOff size={15} /> : <Eye size={15} />}
