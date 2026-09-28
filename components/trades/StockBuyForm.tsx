@@ -3,10 +3,12 @@
 import { useState } from "react"
 import { TradeAccount, TradeStockLot } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils/finance"
+import { calcBrokerFee } from "@/lib/utils/trades"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AmountInput } from "@/components/ui/AmountInput"
+import FeeFields from "./FeeFields"
 
 type NewLot = {
   account_id: string
@@ -15,6 +17,8 @@ type NewLot = {
   buy_price: number
   volume: number
   fee: number
+  fee_pct: number | null
+  meterai: boolean
   note: string | null
 }
 
@@ -38,12 +42,18 @@ export default function StockBuyForm({ broker, defaultDate, lot, submitLabel, on
   const [buyDate, setBuyDate] = useState(lot?.buy_date ?? defaultDate)
   const [buyPrice, setBuyPrice] = useState(lot ? String(lot.buy_price) : '')
   const [volume, setVolume] = useState(lot ? String(lot.volume) : '')
-  const [fee, setFee] = useState(lot?.fee ? String(lot.fee) : '')
+  // New buys start from the broker's default %; edits keep the % saved on the lot.
+  const initialPct = lot ? lot.fee_pct : broker.buy_fee_pct
+  const [feePct, setFeePct] = useState(initialPct != null ? String(initialPct) : '')
+  const [meterai, setMeterai] = useState(lot?.meterai ?? false)
+  // Older lots stored a manually-typed fee with no %; keep that amount until the % or meterai is changed.
+  const [legacyFee, setLegacyFee] = useState<number | null>(lot && lot.fee_pct == null && lot.fee > 0 ? lot.fee : null)
   const [note, setNote] = useState(lot?.note ?? '')
   const [saving, setSaving] = useState(false)
 
   const symbol = CURRENCY_SYMBOL[broker.currency] ?? broker.currency
   const totalBuy = parseNum(buyPrice) * parseNum(volume)
+  const fee = legacyFee ?? calcBrokerFee(totalBuy, parseNum(feePct), meterai, broker.currency)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -55,7 +65,9 @@ export default function StockBuyForm({ broker, defaultDate, lot, submitLabel, on
       buy_date: buyDate,
       buy_price: parseNum(buyPrice),
       volume: parseNum(volume),
-      fee: parseNum(fee),
+      fee,
+      fee_pct: legacyFee == null && feePct ? parseNum(feePct) : null,
+      meterai: legacyFee == null && meterai,
       note: note.trim() || null,
     })
     setSaving(false)
@@ -107,13 +119,16 @@ export default function StockBuyForm({ broker, defaultDate, lot, submitLabel, on
         <span className="text-sm font-semibold">{formatCurrency(totalBuy, broker.currency)}</span>
       </div>
 
-      <div className="space-y-1">
-        <Label className="text-xs">Additional fee (counts as a loss)</Label>
-        <div className="flex items-center border rounded-md overflow-hidden bg-background text-sm">
-          <span className="px-2.5 py-1.5 text-muted-foreground border-r bg-muted/50 shrink-0 select-none">{symbol}</span>
-          <AmountInput value={fee} onChange={setFee} placeholder="0" className="flex-1 px-3 py-1.5 bg-transparent outline-none min-w-0" />
-        </div>
-      </div>
+      <FeeFields
+        label="Additional fee (counts as a loss)"
+        currency={broker.currency}
+        pct={feePct}
+        onPctChange={v => { setFeePct(v); setLegacyFee(null) }}
+        meterai={meterai}
+        onMeteraiChange={v => { setMeterai(v); setLegacyFee(null) }}
+        fee={fee}
+        hint={legacyFee != null ? 'Entered manually before. Set a % to recalculate.' : undefined}
+      />
 
       <div className="space-y-1">
         <Label className="text-xs">Description (optional)</Label>

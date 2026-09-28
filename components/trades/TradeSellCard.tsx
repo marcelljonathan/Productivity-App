@@ -14,6 +14,8 @@ type SellFields = {
   sell_price: number
   volume: number
   fee: number
+  fee_pct: number | null
+  meterai: boolean
   note: string | null
 }
 
@@ -53,6 +55,8 @@ export default function TradeSellCard({ sell, broker, avgBuyPrice, visible, isEd
             sell_price: fields.sell_price,
             volume: fields.volume,
             fee: fields.fee,
+            fee_pct: fields.fee_pct,
+            meterai: fields.meterai,
             note: fields.note,
           })
           onEdit(sell)

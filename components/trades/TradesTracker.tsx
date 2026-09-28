@@ -7,8 +7,10 @@ import { aggregatePositions, stockCloses } from "@/lib/utils/trades"
 import { computeFutures, futuresCloses } from "@/lib/utils/futures"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
 import BrokerSelector from "./BrokerSelector"
+import { PercentInput } from "./FeeFields"
 import PortfolioCard from "./PortfolioCard"
 import TradeTransactions from "./TradeTransactions"
 import StockHistory from "./StockHistory"
@@ -31,6 +33,8 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
   const [visible, setVisible] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
+  const [buyFeePct, setBuyFeePct] = useState('')
+  const [sellFeePct, setSellFeePct] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Active broker: the chosen one if it still exists, otherwise fall back to the first.
@@ -58,8 +62,22 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
     setRenaming(false)
   }
 
+  function startEditing() {
+    if (!broker) return
+    setRenameValue(broker.name)
+    setBuyFeePct(broker.buy_fee_pct != null ? String(broker.buy_fee_pct) : '')
+    setSellFeePct(broker.sell_fee_pct != null ? String(broker.sell_fee_pct) : '')
+    setRenaming(true)
+  }
+
   async function saveRename() {
-    if (broker && renameValue.trim()) await updateBroker(broker.id, { name: renameValue.trim() })
+    if (broker && renameValue.trim()) {
+      const parsePct = (v: string) => (v ? parseFloat(v) || 0 : null)
+      await updateBroker(broker.id, {
+        name: renameValue.trim(),
+        ...(broker.broker_type === 'stock' && { buy_fee_pct: parsePct(buyFeePct), sell_fee_pct: parsePct(sellFeePct) }),
+      })
+    }
     setRenaming(false)
   }
 
@@ -93,10 +111,24 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
           {/* Broker header: rename / delete / hide values (shared by stock & futures) */}
           <div className="flex items-center justify-between gap-2">
             {renaming ? (
-              <div className="flex items-center gap-2 flex-1">
-                <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} className="text-sm h-8" autoFocus />
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setRenaming(false)}><X size={14} /></Button>
-                <Button size="icon" className="h-8 w-8" onClick={saveRename}><Check size={14} /></Button>
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} className="text-sm h-8" autoFocus />
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setRenaming(false)}><X size={14} /></Button>
+                  <Button size="icon" className="h-8 w-8" onClick={saveRename}><Check size={14} /></Button>
+                </div>
+                {broker.broker_type === 'stock' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Default buy fee</Label>
+                      <PercentInput value={buyFeePct} onChange={setBuyFeePct} placeholder="e.g. 0.15" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Default sell fee</Label>
+                      <PercentInput value={sellFeePct} onChange={setSellFeePct} placeholder="e.g. 0.25" />
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -113,9 +145,9 @@ export default function TradesTracker({ pageId }: { pageId: string }) {
                     {visible ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                   <button
-                    onClick={() => { setRenameValue(broker.name); setRenaming(true) }}
+                    onClick={startEditing}
                     className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Rename broker"
+                    title="Edit broker"
                   >
                     <Pencil size={15} />
                   </button>

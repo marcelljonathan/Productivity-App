@@ -14,6 +14,8 @@ type LotFields = {
   buy_price: number
   volume: number
   fee: number
+  fee_pct: number | null
+  meterai: boolean
   note: string | null
 }
 

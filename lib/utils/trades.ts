@@ -1,4 +1,15 @@
-import { TradeStockLot, TradeStockSell } from "@/lib/types"
+import { Currency, TradeStockLot, TradeStockSell } from "@/lib/types"
+
+// Indonesian stamp duty charged on trade confirmations above Rp10m.
+export const METERAI_FEE = 10000
+
+// Broker fee = transaction amount × pct%, rounded to a whole rupiah (cents for USD),
+// plus meterai when toggled on.
+export function calcBrokerFee(amount: number, pct: number, meterai: boolean, currency: Currency): number {
+  const raw = amount * pct / 100
+  const rounded = currency === 'IDR' ? Math.round(raw) : Math.round(raw * 100) / 100
+  return rounded + (meterai ? METERAI_FEE : 0)
+}
 
 // A holding of one stock code: buys merged by weighted average, reduced by any sells.
 export type StockPosition = {

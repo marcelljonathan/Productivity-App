@@ -93,6 +93,8 @@ export type TradeAccount = {
   name: string
   currency: Currency
   broker_type: BrokerType
+  buy_fee_pct: number | null   // default broker fee % pre-filled on new buys (stock brokers)
+  sell_fee_pct: number | null  // default broker fee % pre-filled on new sells
   created_at: string
 }
 
@@ -106,7 +108,9 @@ export type TradeStockLot = {
   buy_date: string
   buy_price: number
   volume: number
-  fee: number
+  fee: number               // total fee in account currency = round(total × fee_pct%) + meterai
+  fee_pct: number | null    // null on older rows where the fee was typed in manually
+  meterai: boolean          // Rp10,000 stamp duty added to the fee
   note: string | null
   created_at: string
 }
@@ -144,6 +148,8 @@ export type TradeStockSell = {
   sell_price: number
   volume: number
   fee: number
+  fee_pct: number | null
+  meterai: boolean
   note: string | null
   created_at: string
 }

@@ -11,6 +11,8 @@ type NewLot = {
   buy_price: number
   volume: number
   fee: number
+  fee_pct: number | null
+  meterai: boolean
   note: string | null
 }
 
@@ -21,6 +23,8 @@ type NewSell = {
   sell_price: number
   volume: number
   fee: number
+  fee_pct: number | null
+  meterai: boolean
   note: string | null
 }
 
@@ -35,6 +39,12 @@ type NewFuturesTrade = {
   swap: number
   usd_rate: number
   trade_date: string
+}
+
+// Default broker fee % pre-filled on new stock buys/sells.
+export type BrokerFees = {
+  buy_fee_pct: number | null
+  sell_fee_pct: number | null
 }
 
 // One trades page's data: brokers + their stock buys/sells and futures trades, scoped to the page.
@@ -63,20 +73,20 @@ export function useTradeTracker(pageId: string) {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  const addBroker = useCallback(async (name: string, broker_type: BrokerType, currency: Currency): Promise<TradeAccount | null> => {
+  const addBroker = useCallback(async (name: string, broker_type: BrokerType, currency: Currency, fees?: BrokerFees): Promise<TradeAccount | null> => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
     const { data } = await supabase
       .from('trade_accounts')
-      .insert({ user_id: user.id, page_id: pageId, name, broker_type, currency })
+      .insert({ user_id: user.id, page_id: pageId, name, broker_type, currency, ...fees })
       .select()
       .single()
     await fetchAll()
     return (data as TradeAccount) ?? null
   }, [pageId, fetchAll])
 
-  const updateBroker = useCallback(async (id: string, updates: { name?: string }) => {
+  const updateBroker = useCallback(async (id: string, updates: { name?: string } & Partial<BrokerFees>) => {
     const supabase = createClient()
     await supabase.from('trade_accounts').update(updates).eq('id', id)
     await fetchAll()
@@ -101,6 +111,8 @@ export function useTradeTracker(pageId: string) {
       buy_price: lot.buy_price,
       volume: lot.volume,
       fee: lot.fee,
+      fee_pct: lot.fee_pct,
+      meterai: lot.meterai,
       note: lot.note,
     })
     await fetchAll()
@@ -133,6 +145,8 @@ export function useTradeTracker(pageId: string) {
       sell_price: sell.sell_price,
       volume: sell.volume,
       fee: sell.fee,
+      fee_pct: sell.fee_pct,
+      meterai: sell.meterai,
       note: sell.note,
     })
     await fetchAll()

@@ -105,6 +105,21 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.trade_stock_lots     TO authentic
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.trade_stock_sells    TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.trade_futures_trades TO authenticated;
 
+-- 8. Broker fee as a percentage + meterai (stamp duty) toggle.
+--    Brokers keep a default buy/sell fee %; each buy/sell stores the % used and whether
+--    meterai was added. `fee` still holds the final amount, so P/L maths is unchanged.
+ALTER TABLE public.trade_accounts
+  ADD COLUMN IF NOT EXISTS buy_fee_pct  NUMERIC,
+  ADD COLUMN IF NOT EXISTS sell_fee_pct NUMERIC;
+
+ALTER TABLE public.trade_stock_lots
+  ADD COLUMN IF NOT EXISTS fee_pct NUMERIC,
+  ADD COLUMN IF NOT EXISTS meterai BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE public.trade_stock_sells
+  ADD COLUMN IF NOT EXISTS fee_pct NUMERIC,
+  ADD COLUMN IF NOT EXISTS meterai BOOLEAN NOT NULL DEFAULT false;
+
 -- ------------------------------------------------------------
 -- Optional cleanup: the first version created these two tables,
 -- which the broker/portfolio model no longer uses. Uncomment to drop.

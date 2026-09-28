@@ -6,12 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, CandlestickChart, LineChart } from "lucide-react"
+import { BrokerFees } from "@/hooks/useTradeTracker"
+import { PercentInput } from "./FeeFields"
 
 type Props = {
   brokers: TradeAccount[]
   selectedId: string | null
   onSelect: (id: string) => void
-  onAdd: (name: string, type: BrokerType, currency: Currency) => Promise<TradeAccount | null>
+  onAdd: (name: string, type: BrokerType, currency: Currency, fees?: BrokerFees) => Promise<TradeAccount | null>
+}
+
+function parsePct(v: string): number | null {
+  return v ? parseFloat(v) || 0 : null
 }
 
 const TYPE_LABEL: Record<BrokerType, string> = { stock: 'Stock', futures: 'CFD/Forex' }
@@ -21,15 +27,18 @@ export default function BrokerSelector({ brokers, selectedId, onSelect, onAdd }:
   const [name, setName] = useState('')
   const [type, setType] = useState<BrokerType>('stock')
   const [currency, setCurrency] = useState<Currency>('IDR')
+  const [buyFeePct, setBuyFeePct] = useState('')
+  const [sellFeePct, setSellFeePct] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
     setSaving(true)
-    const broker = await onAdd(name.trim(), type, currency)
+    const fees = type === 'stock' ? { buy_fee_pct: parsePct(buyFeePct), sell_fee_pct: parsePct(sellFeePct) } : undefined
+    const broker = await onAdd(name.trim(), type, currency, fees)
     setSaving(false)
-    setName(''); setType('stock'); setCurrency('IDR'); setShowAdd(false)
+    setName(''); setType('stock'); setCurrency('IDR'); setBuyFeePct(''); setSellFeePct(''); setShowAdd(false)
     if (broker) onSelect(broker.id)
   }
 
@@ -99,6 +108,18 @@ export default function BrokerSelector({ brokers, selectedId, onSelect, onAdd }:
               </select>
             </div>
           </div>
+          {type === 'stock' && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Default buy fee</Label>
+                <PercentInput value={buyFeePct} onChange={setBuyFeePct} placeholder="e.g. 0.15" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Default sell fee</Label>
+                <PercentInput value={sellFeePct} onChange={setSellFeePct} placeholder="e.g. 0.25" />
+              </div>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={saving} className="flex-1">
               {saving ? 'Adding...' : 'Add Broker'}
